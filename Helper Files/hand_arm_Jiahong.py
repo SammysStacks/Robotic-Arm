@@ -39,11 +39,27 @@ speed_x = 1 # speed_x = 1 when the arm is in fast mode, otherwise, speed_x = 0
 '''Gui design'''
 _translate = QtCore.QCoreApplication.translate
 
-class Ui_MainWindow(object):
+class Ui_MainWindow():
+    def __init__(self, MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5, initiate=False):
+        self.MainWindow = MainWindow
+        self.centralwidget = centralwidget
+        self.Number_distance = Number_distance
+        # Set Up Arms
+        self.arm_1 = arm_1
+        self.arm_2 = arm_2
+        self.arm_3 = arm_3
+        self.arm_4 = arm_4
+        self.arm_5 = arm_5
+        # Set Up GUI Window
+        if initiateRobot:
+            self.setupUi(self.MainWindow)
+            self.MainWindow.show()
+        
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(800*k, 750*k)
-        self.centralwidget = QtWidgets.QWidget(MainWindow)
+        
         self.centralwidget.setObjectName("centralwidget")
         
         # position input of finger 1 
@@ -240,7 +256,6 @@ class Ui_MainWindow(object):
         self.pushButton_reset.setObjectName("pushButton_reset")
         
         # position input for arm_1
-        self.arm_1 = QtWidgets.QTextEdit(self.centralwidget)
         self.arm_1.setGeometry(QtCore.QRect(86*k, 478*k, 71*k, 41*k))
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -252,7 +267,6 @@ class Ui_MainWindow(object):
         self.arm_1.setText(str(HomePosition[0]))
         
         # position input for arm_2
-        self.arm_2 = QtWidgets.QTextEdit(self.centralwidget)
         self.arm_2.setGeometry(QtCore.QRect(186*k, 478*k, 71*k, 41*k))
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -264,7 +278,6 @@ class Ui_MainWindow(object):
         self.arm_2.setText(str(HomePosition[1]))
         
         # position input for arm_3
-        self.arm_3 = QtWidgets.QTextEdit(self.centralwidget)
         self.arm_3.setGeometry(QtCore.QRect(286*k, 478*k, 71*k, 41*k))
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -276,7 +289,6 @@ class Ui_MainWindow(object):
         self.arm_3.setText(str(HomePosition[2]))
         
         # position input for arm_4
-        self.arm_4 = QtWidgets.QTextEdit(self.centralwidget)
         self.arm_4.setGeometry(QtCore.QRect(386*k, 478*k, 71*k, 41*k))
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -288,7 +300,6 @@ class Ui_MainWindow(object):
         self.arm_4.setText(str(HomePosition[3]))
         
         # position input for arm_5
-        self.arm_5 = QtWidgets.QTextEdit(self.centralwidget)
         self.arm_5.setGeometry(QtCore.QRect(486*k, 478*k, 71*k, 41*k))
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -373,7 +384,6 @@ class Ui_MainWindow(object):
         self.label_distance.setObjectName("label_distance")
         
         # show the distance
-        self.Number_distance = QtWidgets.QLabel(self.centralwidget)
         self.Number_distance.setGeometry(QtCore.QRect(180*k, 380*k, 61*k, 21*k))
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -444,16 +454,11 @@ class Ui_MainWindow(object):
         finger_5(pos)
             
     def click_Move_Arm(self):
-        loc_1 = self.arm_1.toPlainText()
-        loc_1 = int(loc_1)
-        loc_2 = self.arm_2.toPlainText()
-        loc_2 = int(loc_2)
-        loc_3 = self.arm_3.toPlainText()
-        loc_3 = int(loc_3)
-        loc_4 = self.arm_4.toPlainText()
-        loc_4 = int(loc_4)
-        loc_5 = self.arm_5.toPlainText()
-        loc_5 = int(loc_5)
+        loc_1 = int(self.arm_1.toPlainText())
+        loc_2 = int(self.arm_2.toPlainText())
+        loc_3 = int(self.arm_3.toPlainText())
+        loc_4 = int(self.arm_4.toPlainText())
+        loc_5 = int(self.arm_5.toPlainText())
         Controller.moveTo([loc_1, loc_2, loc_3, loc_4, loc_5])
         
     def click_Laser_On(self):
@@ -489,15 +494,38 @@ class Ui_MainWindow(object):
         self.Number_distance.setText(_translate("MainWindow", "no data"))
         self.laser_on.setText(_translate("MainWindow", "Laser On"))
         self.laser_off.setText(_translate("MainWindow", "Laser Off"))
+    
+def distanceRead():
+    if hand.in_waiting > 20:
+        _ = hand.read_all
+    if hand.in_waiting > 0:
+        d_laser = hand.read_until()
+        distance = d_laser.decode()
+        ui.Number_distance.setText(_translate("MainWindow", str(distance)))
+        distance = int(distance)
+        global speed_x
+        print(distance, distance_slow)
+        if distance < distance_slow and speed_x == 1:
+            Controller.updateMovementParams([speed_slow, speed_slow, speed_slow, speed_slow, speed_slow], 'speed')
+            speed_x = 0
+            print('slow')
+        elif distance >= distance_slow and speed_x == 0:
+            Controller.updateMovementParams([speed_fast, speed_fast, speed_fast, speed_fast, speed_fast], 'speed')
+            speed_x = 1
+            print('fast')
+                       
+    threading.Timer(0.05,distanceRead).start()
 
 
 # In[ ]:
 
 
 class initiateRobot(Ui_MainWindow):
-    def __init__(self):
+    def __init__(self, MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5):
         # Load Parent Class
-        super().__init__()
+        super().__init__(MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5)
         
         # Label Actuators
         self.actuID = [0x01, 0x02, 0x03, 0x04, 0x05]
@@ -544,7 +572,6 @@ class initiateRobot(Ui_MainWindow):
     
     def isMoving(self):
         initalPos = self.getCurrentPos()
-        time.sleep(0.5)
         finalPos = self.getCurrentPos()
         if functools.reduce(lambda x, y : x and y, map(lambda p, q: abs(p-q) < self.posError,initalPos,finalPos), True): 
             return False
@@ -585,6 +612,11 @@ class initiateRobot(Ui_MainWindow):
             print('Connection Error:', e)
             sys.exit()
     
+    def stopRobot(self):
+        while self.isMoving():
+            stopAt = self.getCurrentPos()
+            self.moveTo(stopAt)
+    
     def updateMovementParams(self, newVal, mode, motorNum = None):
         """
         Parameters
@@ -603,13 +635,16 @@ class initiateRobot(Ui_MainWindow):
                 return None
             
             # Update the Correct Movement Parameter
-            if mode == 'speed':
-                # Change the Value
-                self.maxSpeed = newVal
+            if mode == 'speed':                
                 # If You are Slowing it Down, Stop the Robot First
                 if self.maxSpeed[0] > newVal[0]:
+                    # Change the Value
+                    self.maxSpeed = newVal
                     self.stopRobot()
                     self.click_Move_Arm()
+                else:
+                    # Change the Value
+                    self.maxSpeed = newVal
             elif mode == "accel":
                 self.accel = newVal
                 # If You are Slowing it Down, Stop the Robot First
@@ -664,8 +699,10 @@ class initiateRobot(Ui_MainWindow):
 
 class moveRobot(initiateRobot):
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5):
+        super().__init__(MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5)
     
     def homePos(self):
         # Start at Home
@@ -733,24 +770,8 @@ class moveRobot(initiateRobot):
             currentPos[3] += 1
         innfos.setpos(self.actuID, currentPos)
 
-
 # In[ ]:
-
-
-RoboArm = initiateRobot()
-RoboArm.setRoboParams()
-
-
-# In[ ]:
-
-
-Controller = moveRobot()
-#Controller.homePos() # Home Position
-#time.sleep(5)
-
-
-# In[ ]:
-
+    
 
 def find_hand():
     ports = serial.tools.list_ports.comports()
@@ -758,40 +779,11 @@ def find_hand():
         if p.vid == 9025:
             port = p.device         
     return port
-        
+
 port = find_hand()
-
-
-# In[ ]:
-
-
 hand = serial.Serial(port, baudrate=115200, timeout=1)
 _ = hand.read_all()
 
-
-# In[ ]:
-
-
-'''laser'''
-
-def distanceRead():
-    if hand.in_waiting > 0:
-        d_laser = hand.read_until()
-        distance = d_laser.decode()
-        #print(distance)
-        ui.Number_distance.setText(_translate("MainWindow", str(distance)))
-        distance = int(distance)
-        global speed_x
-        if distance < distance_slow and speed_x == 1:
-            Controller.updateMovementParams([speed_slow, speed_slow, speed_slow, speed_slow, speed_slow], 'speed')
-            speed_x = 0
-            print('slow')
-        elif distance >= distance_slow and speed_x == 0:
-            Controller.updateMovementParams([speed_fast, speed_fast, speed_fast, speed_fast, speed_fast], 'speed')
-            speed_x = 1
-            print('fast')
-                       
-    threading.Timer(0.05,distanceRead).start()
 
 
 # In[ ]:
@@ -894,25 +886,47 @@ def finger_all(pos,speed=1):
 
 
 '''Open the graphic user interface'''
-if __name__ == "__main__":
+if __name__ == "__main__":# In[ ]:
+    # Start GUI
     app = QtWidgets.QApplication(sys.argv)
+    # Create GUI
     MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    distanceRead()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())
-
-
-# In[ ]:
-
-
-'''Turn off the robot arm'''
-hand.write(str.encode('s0')) # turn off the laser
-RoboArm.powerDown() # power off in 5 seconds
-
-
-# In[ ]:
+    centralwidget = QtWidgets.QWidget(MainWindow)
+    Number_distance = QtWidgets.QLabel(centralwidget)
+    # Set Up Arms
+    arm_1 = QtWidgets.QTextEdit(centralwidget)
+    arm_2 = QtWidgets.QTextEdit(centralwidget)
+    arm_3 = QtWidgets.QTextEdit(centralwidget)
+    arm_4 = QtWidgets.QTextEdit(centralwidget)
+    arm_5 = QtWidgets.QTextEdit(centralwidget)
+    
+    # Initiate the GUI and Setup Params
+    ui = Ui_MainWindow(MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5, initiate=True)
+    
+    # Initiate the Robot
+    RoboArm = initiateRobot(MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5)
+    RoboArm.checkConnection()
+    try:
+        # Setup the Robot's Parameters
+        RoboArm.setRoboParams() # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
+        RoboArm.setRest()       # Sets the Rest Position to Current Start Position
+        
+        # Initate Robot for Movement and Place in Beginning Position
+        Controller = moveRobot(MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5)
+        
+        distanceRead()
+        sys.exit(app.exec_())
+    except Exception as e:
+        print(e)
+        time.sleep(5)
+        # Turn Off the Laser
+        hand.write(str.encode('s0')) # turn off the laser
+        hand.close()
+        # Turn Off Robot
+        RoboArm.powerDown() # power off in 5 seconds
 
 
 
