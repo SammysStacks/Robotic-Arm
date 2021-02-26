@@ -6,6 +6,7 @@
 
 import sys
 import time
+import functools
 import threading
 
 import serial
@@ -41,8 +42,12 @@ class initiateRobot:
         self.actuID = [0x01, 0x02, 0x03, 0x04, 0x05]
         
         # Define Common Positions
-        self.HomePos = HomePosition # Set the Start/End Home Position
+        self.HomePos = [-1, -10, 5, 12, 0] # Set the Start/End Home Position
+        self.FancyPos = [-1, -14, -8, 13, 0] # Set the Start/End Home Position
+        self.RestPos = [-1.2004829049110413, 0.2907487154006958, 1.065185546875, 1.10516357421875, 0.00054931640625] # Set the Start/End Home Position
+        self.posError = 0.01
         
+        # Define Movement Parameters
         # Define Movement Parameters
         self.maxSpeed = [0.3, 0.3, 0.3, 0.3, 0.3]
         self.accel = [1.5, 1.5, 1.5, 1.5, 1.5]
@@ -58,15 +63,67 @@ class initiateRobot:
         # Set Speed, Acceleration, and Deceleration
         innfos.trapposset(self.actuID, self.accel, self.maxSpeed, self.decel)
         time.sleep(0.5)
-        print(innfos.readacttemp(self.actuID))
         
-        # Set Limits
-        #innfos.poslimit(self.actuID[1], 0, -8)
+        # Set Position Limits
+        upperPosLim = [14, 0.3, 14, 14, 14]
+        lowerPosLim = [-14, -16, -14, -14, -14]
+        innfos.poslimit(self.actuID, upperPosLim, lowerPosLim)
+        time.sleep(0.5)
+    
+    def getCurrentPos(self):
+        currentPos = innfos.readpos(self.actuID)
+        return currentPos
+    
+    def setRest(self, pos = []):
+        if pos:
+            self.RestPos = pos
+        else:
+            currentPos = self.getCurrentPos()
+            self.RestPos = currentPos
+    
+    def isMoving(self):
+        initalPos = self.getCurrentPos()
+        time.sleep(0.5)
+        finalPos = self.getCurrentPos()
+        if functools.reduce(lambda x, y : x and y, map(lambda p, q: abs(p-q) < self.posError,initalPos,finalPos), True): 
+            return False
+        else: 
+            return True
+    
+    def waitUntilStoped(self):
+        while self.isMoving():
+            time.sleep(0.5)
+            
+    def powerUp(self, mode):
+        print("Powering On")
+        if mode == 'fancy':
+            innfos.setpos(self.actuID, self.FancyPos)
+            self.waitUntilStoped()
+        innfos.setpos(self.actuID, self.HomePos)
+        self.waitUntilStoped()
     
     def powerDown(self):
-        time.sleep(5)
+        print("Powering Off")
+        self.waitUntilStoped()
+        innfos.setpos(self.actuID, self.RestPos)
+        self.waitUntilStoped()
         innfos.disableact(self.actuID)
-        
+    
+    def checkConnection(self):
+        try:
+            statusg = innfos.handshake()
+            data = innfos.queryID(5)
+            innfos.enableact(data)
+            innfos.disableact(data)
+            if statusg ==1:
+                print('Connection is ok')
+            else:
+                print('Connection failed')
+                sys.exit()
+        except Exception as e:
+            print('Connection Error:', e)
+            sys.exit()
+    
     def updateMovementParams(self, newVal, mode, motorNum = None):
         """
         Parameters
@@ -75,12 +132,13 @@ class initiateRobot:
         mode : the parameter to change
         motorNum : If you are editing only one motor, supply the motor number
         -------
+
         """
         # Update all the Motors
         if motorNum == None:
             # Make Sure that the user Inputed the Correct Type
             if type(newVal) != list or len(newVal) != len(self.maxSpeed):
-                #print("Please Provide a List of Speeds for All Actuators")
+                print("Please Provide a List of Speeds for All Actuators")
                 return None
             
             # Update the Correct Movement Parameter
@@ -108,10 +166,10 @@ class initiateRobot:
                 self.decel[motorNum] = newVal
             else:
                 print("No Parameter was Given; None were Changed")
-        
+                
         # Set the new limits
-        innfos.trapposset(self.actuID, self.accel, self.maxSpeed, self.decel)
-        #time.sleep(0.1)
+        innfos.trapposset(self.actuID, self.accel, self.maxSpeed, self.decel)                
+            
 
 
 # In[ ]:
@@ -125,26 +183,47 @@ class moveRobot(initiateRobot):
     def homePos(self):
         # Start at Home
         innfos.setpos(self.actuID, self.HomePos)
-        time.sleep(2)
+        self.waitUntilStoped()
     
     def moveTo(self, pos):
         # Start at Home
         innfos.setpos(self.actuID, pos)
-        #time.sleep(2)
+    
+    def askUserForInput(self, mode = "oneTime"):
+        currentPos = self.getCurrentPos()
+        print(currentPos)
+        print("Enter New Coordinates or Enter Y to Keep Current One")
+        askUser = True
+        while askUser:
+            userPos = []
+            for i in range(0, 5):
+                corPos = input("Enter element No-{}: ".format(i+1))
+                print(corPos)
+                if corPos == "Y":
+                    userPos.append(currentPos[i]) 
+                else:
+                    userPos.append(float(corPos))
+            print("The entered list is: \n",userPos)
+            self.moveTo(userPos)
+            if mode == "oneTime":
+                askUser = False
+            else:
+                keepGoing = input("Type Y to Keep Going")
+                if keepGoing != "Y":
+                    askUser = False
     
     def moveLeft(self):
-        currentPos = innfos.readpos(self.actuID)
+        currentPos = self.getCurrentPos()
         currentPos[0] -= 1
         innfos.setpos(self.actuID, currentPos)
     
     def moveRight(self):
-        currentPos = innfos.readpos(self.actuID)
+        currentPos = self.getCurrentPos()
         currentPos[0] += 1
         innfos.setpos(self.actuID, currentPos)
     
     def moveUp(self):
-        currentPos = innfos.readpos(self.actuID)
-        print(currentPos)
+        currentPos = self.getCurrentPos()
         errorPos = 0.001
         if currentPos[2] < 6 + errorPos:
             currentPos[3] -=1
@@ -155,13 +234,10 @@ class moveRobot(initiateRobot):
         innfos.setpos(self.actuID, currentPos)
     
     def moveDown(self):
-        currentPos = innfos.readpos(self.actuID)
-        print(currentPos)
-        errorPos = 0.001
-        if currentPos[1] > -14 + errorPos:
-            if abs(currentPos[1] - self.HomePos[1]) < errorPos:
+        currentPos = self.getCurrentPos()
+        if currentPos[1] > -14 + self.posError:
+            if abs(currentPos[1] - self.HomePos[1]) < self.posError:
                 currentPos[3] = currentPos[3] -8
-                time.sleep(2)
             else:
                 currentPos[3] +=1
             currentPos[1] -=1
