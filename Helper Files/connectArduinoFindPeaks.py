@@ -176,13 +176,12 @@ READ_DAQ_DELAY = 4;
 # ----------------- Stream Data from Arduino Can Edit ----------------------- #
 
 
-def find_arduino(port=None):
+def find_arduino(serialNum = 'NA'):
     """Get the name of the port that is connected to Arduino."""
-    if port is None:
-        ports = serial.tools.list_ports.comports()
-        for p in ports:
-            if p.manufacturer is not None and ("Arduino" in p.manufacturer or "Microsoft" in p.manufacturer):
-                port = p.device
+    ports = serial.tools.list_ports.comports()
+    for p in ports:
+        if p.serial_number == serialNum:
+            port = p.device
     return port
 
 
@@ -347,7 +346,7 @@ def parse_read(read):
     else:
         return time_ms, channelList[0], channelList[1], channelList[2], channelList[3], b'' #raw_list[-1].encode()
 
-def daq_stream_async(n_data, seeFullPlot, testNeuralNetwork = False, n_trash_reads=100, n_reads_per_chunk=400, delay=100, Controller=None, nn=None):
+def daq_stream_async(n_data, serialNum, seeFullPlot, testNeuralNetwork = False, n_trash_reads=100, n_reads_per_chunk=400, delay=100, Controller=None, nn=None):
     """Obtain `n_data` data points from an Arduino stream
     with a delay of `delay` milliseconds between each."""
     print("Streaming in Data from the Arduino")
@@ -355,7 +354,7 @@ def daq_stream_async(n_data, seeFullPlot, testNeuralNetwork = False, n_trash_rea
     
     # Find Arduino Port. If None: print Error
     try:
-        port = find_arduino()
+        port = find_arduino(serialNum = serialNum)
         arduino = serial.Serial(port, baudrate=115200)
     except Exception as e:
             print("No Port Found: ", e)
@@ -1023,6 +1022,7 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------- #
     
     # General Data Collection Information
+    serialNum = '85735313333351E040A0'
     numDataPoints = 60000  # Number of Points to Stream into the Arduino
     seeFullPlot = True    # (NOT IMPLEMENTED YET) Graph the Peak Analysis IN ADDITION TO the Arduino Data
     SaveNeuralNetwork = False
@@ -1110,7 +1110,7 @@ if __name__ == "__main__":
           
     # Stream in Data from Arduino (EMG Signals)
     if streamArduino:
-        daq_stream_async(numDataPoints, seeFullPlot, testNeuralNetwork, nn=nn)
+        daq_stream_async(numDataPoints, serialNum, seeFullPlot, testNeuralNetwork, nn=nn)
     # Take Data from Excel Sheet
     elif readSignalsFromExcel:
         streamExcelData(testDataExcelFile, seeFullPlot, testNeuralNetwork, testSheetNum, nn=nn)
