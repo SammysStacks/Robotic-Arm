@@ -1171,7 +1171,7 @@ if __name__ == "__main__":
                 loser = 1
                 #print("\n", e)
                 #print((nn.opt, nn.loss, nn.metric))
-        with open('./OptimizingNN/Adadelta.json', 'w') as outfile:
+        with open('./OptimizingNN/Ada_star.json', 'w') as outfile:
             json.dump(goodNets, outfile, indent=4, sort_keys=True)
         
     # Save the Data in Excel: EMG Channels (Cols 1-4); X-Peaks (Cols 5-8); Peak Features (Cols 9-12)
