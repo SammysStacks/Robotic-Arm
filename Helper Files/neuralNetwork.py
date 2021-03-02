@@ -48,21 +48,22 @@ class Helpers:
             self.optimizers = [
                 tf.keras.optimizers.Adadelta(learning_rate=0.001, rho=0.95, epsilon=1e-07, name='Adadelta'),
                 tf.keras.optimizers.Adagrad(learning_rate=0.001, initial_accumulator_value=0.1, epsilon=1e-07, name='Adagrad'),
-                tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07, amsgrad=False, name='Adam'),
-                tf.keras.optimizers.Adamax(learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07, name='Adamax'),
-                tf.keras.optimizers.Nadam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07, name='Nadam'),
-                tf.keras.optimizers.RMSprop(learning_rate=0.001, rho=0.9, momentum=0.0, epsilon=1e-07, centered=False, name='RMSprop'),
-                tf.keras.optimizers.SGD(learning_rate=0.01, momentum=0.0, nesterov=False, name='SGD'),
-                tf.keras.optimizers.Ftrl(learning_rate=0.001, learning_rate_power=-0.5,
-                        initial_accumulator_value=0.1, l1_regularization_strength=0.0, l2_regularization_strength=0.0,
-                        name='Ftrl', l2_shrinkage_regularization_strength=0.0, beta=0.0)
+                #tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07, amsgrad=False, name='Adam'),
+                #tf.keras.optimizers.Adamax(learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07, name='Adamax'),
+                #tf.keras.optimizers.Nadam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07, name='Nadam'),
+                #tf.keras.optimizers.RMSprop(learning_rate=0.001, rho=0.9, momentum=0.0, epsilon=1e-07, centered=False, name='RMSprop'),
+                #tf.keras.optimizers.SGD(learning_rate=0.01, momentum=0.0, nesterov=False, name='SGD'),
+                #tf.keras.optimizers.Ftrl(learning_rate=0.001, learning_rate_power=-0.5,
+                #        initial_accumulator_value=0.1, l1_regularization_strength=0.0, l2_regularization_strength=0.0,
+                #        name='Ftrl', l2_shrinkage_regularization_strength=0.0, beta=0.0)
                 ]
         if lossFuncs:
             self.loss = list(lossFuncs)
         else:
             self.loss = [
                 tf.keras.losses.BinaryCrossentropy(from_logits=False, label_smoothing=0, reduction=losses_utils.ReductionV2.AUTO, name='binary_crossentropy'),
-                tf.keras.losses.CategoricalCrossentropy(from_logits=False, label_smoothing=0, reduction=losses_utils.ReductionV2.AUTO, name='categorical_crossentropy'),
+                #tf.keras.losses.CategoricalCrossentropy(from_logits=False, label_smoothing=0, reduction=losses_utils.ReductionV2.AUTO, name='categorical_crossentropy'),
+                """
                 tf.keras.losses.CategoricalHinge(reduction=losses_utils.ReductionV2.AUTO, name='categorical_hinge'),
                 tf.keras.losses.CosineSimilarity(axis=-1, reduction=losses_utils.ReductionV2.AUTO, name='cosine_similarity'),
                 tf.keras.losses.Hinge(reduction=losses_utils.ReductionV2.AUTO, name='hinge'),
@@ -77,14 +78,16 @@ class Helpers:
                 tf.keras.losses.Poisson(reduction=losses_utils.ReductionV2.AUTO, name='poisson'),
                 tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False, reduction=losses_utils.ReductionV2.AUTO, name='sparse_categorical_crossentropy'),
                 tf.keras.losses.SquaredHinge(reduction=losses_utils.ReductionV2.AUTO, name='squared_hinge'),
+                """
                 ]
         if metrics:
             self.metrics = list(metrics)
         else:
             self.metrics = [
                 tf.keras.metrics.AUC(num_thresholds=200, curve='ROC', summation_method='interpolation', name=None, dtype=None, thresholds=None, multi_label=False, label_weights=None),
-                tf.keras.metrics.Accuracy(name='accuracy', dtype=None),
-                tf.keras.metrics.BinaryAccuracy(name='binary_accuracy', dtype=None, threshold=0.5),
+                #tf.keras.metrics.Accuracy(name='accuracy', dtype=None),
+                #tf.keras.metrics.BinaryAccuracy(name='binary_accuracy', dtype=None, threshold=0.5),
+                """
                 tf.keras.metrics.BinaryCrossentropy(name='binary_crossentropy', dtype=None, from_logits=False, label_smoothing=0),
                 tf.keras.metrics.CategoricalAccuracy(name='categorical_accuracy', dtype=None),
                 tf.keras.metrics.CategoricalCrossentropy(name='categorical_crossentropy', dtype=None, from_logits=False, label_smoothing=0),
@@ -119,6 +122,7 @@ class Helpers:
                 tf.keras.metrics.TopKCategoricalAccuracy(k=5, name='top_k_categorical_accuracy', dtype=None),
                 tf.keras.metrics.TrueNegatives(thresholds=None, name=None, dtype=None),
                 tf.keras.metrics.TruePositives(thresholds=None, name=None, dtype=None),
+                """
                 ]
         
     def neuralPermutations(self):
@@ -184,8 +188,7 @@ class Neural_Network:
             self.loss = loss
             self.metric = metric
             #sgd = tf.keras.optimizers.SGD(lr=0.01, momentum=0.9)
-            
-            model.compile(optimizer = opt, loss = loss, metrics = list(metric))
+            model.compile(optimizer = opt, loss = loss, metrics = list([metric]))
             print("New Neural Network Created")
         self.model = model
         self.name = name

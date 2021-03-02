@@ -9,10 +9,7 @@ import innfosControlFunctions as innfos
 # --------------------------- User Can Edit --------------------------------- #
 
 class initiateRobot:
-    def __init__(self):
-        # Load Parent Class
-        super().__init__()
-        
+    def __init__(self):        
         # Label Actuators
         self.actuID = [0x01, 0x02, 0x03, 0x04, 0x05]
         
@@ -58,7 +55,6 @@ class initiateRobot:
     
     def isMoving(self):
         initalPos = self.getCurrentPos()
-        time.sleep(0.5)
         finalPos = self.getCurrentPos()
         if functools.reduce(lambda x, y : x and y, map(lambda p, q: abs(p-q) < self.posError,initalPos,finalPos), True): 
             return False
@@ -126,8 +122,6 @@ class initiateRobot:
             else:
                 print("No Parameter was Given; None were Changed")
             
-            if self.maxSpeed[0] > newVal[0]:
-                self.stopRobot()
         # Update Only One Motor's Value
         else:
             # Make Sure that the user Inputed the Correct Type
@@ -168,8 +162,9 @@ class moveRobot(initiateRobot):
         innfos.setpos(self.actuID, pos)
     
     def stopRobot(self):
-        stopAt = self.getCurrentPos()
-        self.moveTo(stopAt)
+        while self.isMoving():
+            stopAt = self.getCurrentPos()
+            self.moveTo(stopAt)
     
     def askUserForInput(self, mode = "oneTime"):
         currentPos = self.getCurrentPos()

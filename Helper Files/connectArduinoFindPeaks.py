@@ -32,6 +32,8 @@ import matplotlib.animation as manimation
 import neuralNetwork as NeuralNet
 from sklearn.model_selection import train_test_split
 
+import json
+
 
 # --------------------------------------------------------------------------- #
 # ------------------ User Can Edit (Global Variables) ----------------------- #
@@ -1027,7 +1029,7 @@ if __name__ == "__main__":
     seeFullPlot = True    # (NOT IMPLEMENTED YET) Graph the Peak Analysis IN ADDITION TO the Arduino Data
     SaveNeuralNetwork = False
     testNeuralNetwork = False
-    optimizeNNParams = False
+    optimizeNNParams = True
     
     # User Options (Only One Can be True; Only the First True Variable Excecutes)
     streamArduino = False          # Stream in Data from the Arduino
@@ -1130,7 +1132,7 @@ if __name__ == "__main__":
         for nn in neuralNetList:
             try:  
                 # Train the NN with the Training Data
-                Neural_Network_Statistics = nn.train_model(Training_Data, Training_Labels, 300, seeTrainingSteps = True)
+                Neural_Network_Statistics = nn.train_model(Training_Data, Training_Labels, 300, seeTrainingSteps = False)
                 # Make a prediction using new data
                 nn.neural_net_prediction(Testing_Data, Testing_Labels)
                 # Plot the training loss    
@@ -1153,13 +1155,24 @@ if __name__ == "__main__":
                     if realLabel != testingLabel:
                         posWrong[realIndex] += 1
                 accuracy = numRight/(i+1)
-                print("\nAccuracy: ", accuracy)
-                print(posWrong)
-                print(movementOptions)
-                goodNets[(accuracy, nn.opt, nn.loss, nn.metric)] = accuracy
+                
+                #print("\nAccuracy: ", accuracy)
+                #print(posWrong)
+                #print(movementOptions)
+                
+                optName = nn.opt.get_config()['name']
+                if goodNets.get(optName, None) == None:
+                    goodNets[optName] = {}
+                if goodNets[optName].get(accuracy, None) == None:
+                    goodNets[optName][accuracy] = [str(nn.loss), str(nn.metric)]
+                else:
+                    goodNets[optName][accuracy].extend([str(nn.loss), str(nn.metric)])
             except Exception as e:
-                print("\n", e)
-                print((nn.opt, nn.loss, nn.metric))
+                loser = 1
+                #print("\n", e)
+                #print((nn.opt, nn.loss, nn.metric))
+        with open('./OptimizingNN/Adadelta.json', 'w') as outfile:
+            json.dump(goodNets, outfile, indent=4, sort_keys=True)
         
     # Save the Data in Excel: EMG Channels (Cols 1-4); X-Peaks (Cols 5-8); Peak Features (Cols 9-12)
     if saveInputData:
