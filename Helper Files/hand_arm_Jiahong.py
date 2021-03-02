@@ -28,8 +28,8 @@ InitialPosition = [90,90,90,90,90] # Initial position of robot fingers
 k = 1 # k=2 for 2k screen, k=1 for 1080 screen
 f = 4 # f=0 for 2k screen, f=4 for 1080 screen
 distance_slow = 100 # robot arm will slow down if the distance is less than this number,
-speed_slow = 0.1 # speed of arm in slow mode
-speed_fast = 0.3# speed of arm in fast mode
+speed_slow = 0.02 # speed of arm in slow mode
+speed_fast = 0.15# speed of arm in fast mode
 speed_x = 1 # speed_x = 1 when the arm is in fast mode, otherwise, speed_x = 0
 
 
@@ -534,11 +534,11 @@ class initiateRobot(Ui_MainWindow):
         self.HomePos = [-1, -10, 5, 12, 0] # Set the Start/End Home Position
         self.FancyPos = [-1, -14, -8, 13, 0] # Set the Start/End Home Position
         self.RestPos = [-1.2004829049110413, 0.2907487154006958, 1.065185546875, 1.10516357421875, 0.00054931640625] # Set the Start/End Home Position
-        self.posError = 0.01
+        self.posError = 0.001
         
         # Define Movement Parameters
         # Define Movement Parameters
-        self.maxSpeed = [0.3, 0.3, 0.3, 0.3, 0.3]
+        self.maxSpeed = [0.1, 0.1, 0.1, 0.1, 0.1]
         self.accel = [1.5, 1.5, 1.5, 1.5, 1.5]
         self.decel = [-1.5, -1.5, -1.5, -1.5, -1.5]
         #actuID = innfos.queryID(6)
@@ -776,7 +776,7 @@ class moveRobot(initiateRobot):
 def find_hand():
     ports = serial.tools.list_ports.comports()
     for p in ports:
-        if p.vid == 9025:
+        if p.serial_number == '7593231313935131D162':
             port = p.device         
     return port
 
