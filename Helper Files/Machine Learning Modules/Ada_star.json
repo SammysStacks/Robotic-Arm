@@ -1,0 +1,8 @@
+{
+    "Adam": {
+        "0.3970037453183521": [
+            "categorical_hinge",
+            "['logcosh', 'mae', 'categorical_crossentropy']"
+        ]
+    }
+}
