@@ -123,7 +123,7 @@ class readExcel(globalParam):
                 dataHold = np.empty((0, self.numChannels), float)
                 continue
             
-            # Collect Features in Cirect Group
+            # Collect Features in Current Group
             featureList = [float(feature1 or 0), float(feature2 or 0), float(feature3 or 0), float(feature4 or 0)]
             dataHold = np.vstack((dataHold, featureList))
         
@@ -156,13 +156,14 @@ class readExcel(globalParam):
                         NN_Data, NN_Labels = self.getDataFromTrainingFile(excelSheet, NN_Data, NN_Labels, movementOptions)
                     elif mode == 'reAnalyze':
                         print("\tReanalyzing Excel Sheet:", excelSheet.title)
-                        # Delete the Previous Analysis from Excel
-                        excelSheet.delete_cols(5,8) # Delete Columns E-L (5 -> 5+8-1)
                         # ReAnalyze Data (First Four Columns)
                         self.streamExcelData(trainingExcelFile, analyzeSheet=excelSheet)
+                        # Delete the Previous Analysis from Excel
+                        sheetName = excelSheet.title
+                        handMovement = sheetName.split(" - ")[1]
+                        WB.remove_sheet(excelSheet)
                         # Overwrite Excel Sheet with new Analysis
-                        handMovement = excelSheet.title.split(" - ")[1]
-                        saveExcelData.saveTestData(self.data, self.xTopGrouping, self.featureSetGrouping, trainDataExcelFolder, excelFile, sheetName=excelSheet, handMovement=handMovement, overWrite = True)
+                        saveExcelData.saveData(self.data, self.xTopGrouping, self.featureSetGrouping, trainDataExcelFolder, excelFile, sheetName=excelSheet, handMovement=handMovement, WB=WB)
                         
         if mode == 'Train':
             NaN_Placements = np.isnan(NN_Data)
@@ -190,7 +191,7 @@ class saveExcel:
             }
 
     def saveData(self, data, xTopGrouping, featureSetGrouping, saveDataFolder, saveExcelName,
-                     sheetName = "Trial 1 - No Gesture", handMovement="No Movement", overWrite=False):        
+                     sheetName = "Trial 1 - No Gesture", handMovement="No Movement", WB=None):        
         # Create Output File Directory to Save Data: If None
         os.makedirs(saveDataFolder, exist_ok=True)
         
@@ -205,10 +206,11 @@ class saveExcel:
             WB_worksheet = WB.active 
             WB_worksheet.title = sheetName
         # Overwrite Previous Excel Sheet; Replacing Sheetname that was Edited
-        elif overWrite:
+        elif WB:
             print("\tOverWriting Excel File:", excel_file)
-            WB = xl.load_workbook(excel_file, read_only=False)
-            WB_worksheet = sheetName
+            #WB = xl.load_workbook(excel_file, read_only=False)
+            WB_worksheet = sheetName.title
+            print("\tSaving Sheet as", sheetName)
         # Loading in Previous Excel File, Creating New Sheet, Editing Trial Number in SheetName
         else:
             print("Excel File Already Exists. Loading File")
@@ -232,7 +234,7 @@ class saveExcel:
         
         xPeakHeader = ['Channel 1 X Peaks', 'Channel 2 X Peaks', 'Channel 3 X Peaks', 'Channel 4 X Peaks']
         featureHeader = ['Channel 1 Features', 'Channel 2 Features', 'Channel 3 Features', 'Channel 4 Features']
-        if not overWrite:
+        if WB:
             # Label First Row
             header = ['Channel 1', 'Channel 2', 'Channel 3', 'Channel 4']
             header.extend(xPeakHeader)

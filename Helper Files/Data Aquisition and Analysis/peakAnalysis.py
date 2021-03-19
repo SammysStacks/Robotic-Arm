@@ -427,7 +427,7 @@ class globalParam:
         # Get FeatureSet Point for Group
         groupFeatures = []
         for channel in range(self.numChannels):
-            channelFeature = self.xTopGrouping[channel][self.currentGroupNum]
+            channelFeature = self.featureSetGrouping[channel][self.currentGroupNum]
             if channelFeature == []:
                 groupFeatures.append(0)
             else:

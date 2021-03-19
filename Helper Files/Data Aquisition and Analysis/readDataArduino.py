@@ -181,7 +181,7 @@ class arduinoRead(globalParam):
         else:
             return time_ms, channelList[0], channelList[1], channelList[2], channelList[3], b'' #raw_list[-1].encode()
     
-    def streamArduino(self, n_data, serialNum, seeFullPlot, myModel = None, Controller=None, n_trash_reads=1000, n_reads_per_chunk=400, delay=100):
+    def streamArduinoData(self, n_data, serialNum, seeFullPlot, myModel = None, Controller=None, n_trash_reads=500, n_reads_per_chunk=400, delay=100):
         """Obtain `n_data` data points from an Arduino stream
         with a delay of `delay` milliseconds between each."""
         print("Streaming in Data from the Arduino")
