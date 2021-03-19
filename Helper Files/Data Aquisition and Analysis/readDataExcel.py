@@ -22,13 +22,12 @@ from peakAnalysis import globalParam
 # --------------------- Extract Test Data from Excel ------------------------ #
 
 class readExcel(globalParam):
-    def __init__(self, xWidth = 2000, moveDataFinger = 200, numChannels = 4):
+    def __init__(self, xWidth = 2000, moveDataFinger = 200, numChannels = 4, movementOptions = []):
         # Get Variables from Peak Analysis File
-        super().__init__(xWidth, moveDataFinger, numChannels)
+        super().__init__(xWidth, moveDataFinger, numChannels, movementOptions)
             
         
-    def streamExcelData(self, testDataExcelFile, seeFullPlot = False, testNeuralNetwork = False, 
-                        testSheetNum = 0, Controller=None, nn=None, analyzeSheet = None):
+    def streamExcelData(self, testDataExcelFile, seeFullPlot = False, testSheetNum = 0, myModel=None, Controller=None, analyzeSheet = None):
         """
         Extracts EMG Data from Excel Document (.xlsx). Data can be iplaced n any,
         worksheet which the user can specify using 'testSheetNum'.
@@ -81,7 +80,7 @@ class readExcel(globalParam):
             
             # When Ready, Send Data Off for Analysis
             while pointNum+1 - dataFinger >= self.xWidth:
-                self.live_plotter(dataFinger, seeFullPlot, testNeuralNetwork, Controller=Controller, nn=nn)
+                self.live_plotter(dataFinger, seeFullPlot, myModel = myModel, Controller = Controller)
                 dataFinger += self.moveDataFinger
             
         # Finished Data Collection: Report Back to User

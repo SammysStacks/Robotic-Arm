@@ -19,9 +19,9 @@ from peakAnalysis import globalParam
 # ----------------- Stream Data from Arduino Can Edit ----------------------- #
 
 class arduinoRead(globalParam):
-    def __init__(self, xWidth = 2000, moveDataFinger = 200, numChannels = 4):
+    def __init__(self, xWidth = 2000, moveDataFinger = 200, numChannels = 4, movementOptions = []):
         # Get Variables from Peak Analysis File
-        super().__init__(xWidth, moveDataFinger, numChannels)
+        super().__init__(xWidth, moveDataFinger, numChannels, movementOptions)
 
         # Set up Connection to Arduino
         self.HANDSHAKE = 0
@@ -181,7 +181,7 @@ class arduinoRead(globalParam):
         else:
             return time_ms, channelList[0], channelList[1], channelList[2], channelList[3], b'' #raw_list[-1].encode()
     
-    def streamArduino(self, n_data, serialNum, seeFullPlot, testNeuralNetwork = False, n_trash_reads=1000, n_reads_per_chunk=400, delay=100, Controller=None, nn=None):
+    def streamArduino(self, n_data, serialNum, seeFullPlot, myModel = None, Controller=None, n_trash_reads=1000, n_reads_per_chunk=400, delay=100):
         """Obtain `n_data` data points from an Arduino stream
         with a delay of `delay` milliseconds between each."""
         print("Streaming in Data from the Arduino")
@@ -228,7 +228,7 @@ class arduinoRead(globalParam):
                 # When Ready, Send Data Off for Analysis
                 pointNum = len(self.data["time_ms"])
                 while pointNum - dataFinger >= self.xWidth:
-                    self.live_plotter(dataFinger, seeFullPlot, testNeuralNetwork=testNeuralNetwork, Controller=Controller, nn=nn)
+                    self.live_plotter(dataFinger, seeFullPlot, myModel = myModel, Controller = Controller)
                     dataFinger += self.moveDataFinger
                 
             except Exception as e:

@@ -23,15 +23,11 @@ Citation:
 import os
 # Import Packages]
 import tensorflow as tf
-import numpy as np
 #from tensorflow import keras
 from keras.models import load_model
 from keras.utils import CustomObjectScope
 from keras.initializers import glorot_uniform
-from sklearn.model_selection import train_test_split
 from matplotlib import pyplot
-# Plotting
-import matplotlib.pyplot as plt
 
 from tensorflow.python.keras.utils import losses_utils
 import itertools
@@ -40,7 +36,7 @@ import itertools
 # ------------------------- Neural Network ----------------------------------#
 
 class Helpers:
-    def __init__(self, name, dataDimension, numClasses = 5, optimizer=None, lossFuncs=None, metrics=None):
+    def __init__(self, name, dataDimension, numClasses = 6, optimizer=None, lossFuncs=None, metrics=None):
         self.name = name
         self.dataDimension = dataDimension
         self.numClasses = numClasses
@@ -138,101 +134,112 @@ class Helpers:
         return neuralOptimizerList
 
 
+# --------------------------------------------------------------------------- #
+# --------------------------------------------------------------------------- #
+    
 class Neural_Network:
     """
     Define a Neural Network Class
     """
-    def __init__(self, name, dim, opt=None, loss=None, metric=None):
+    def __init__(self, modelPath, dataDim):
         """
         Input:
             name: The Name of the Neural Network to Save/Load
-            dim: The dimension of 1 data point (# of columns in data)
         Output: None
         Save: model, name
         """
-        # Tries to find a compiled model identical to name (in same folder)
-        if os.path.exists(name):
-            with CustomObjectScope({'GlorotUniform': glorot_uniform()}):
-                model = load_model(name)
-            print("Previous Neural Network Loaded")
-        # If unsuccessful, create a new model
+        # Define Model Parameters
+        self.history = None
+        
+        # Initialize Model
+        self.model = None
+        if os.path.exists(modelPath):
+            # If Model Exists, Load it
+            self.loadModel(modelPath)
         else:
-            # Define a TensorFlow Neural Network using Keras
-                # Sequential: Inputing the List of Hidden Layers into the Network (in order)
-                # Dense: Adds a layer of neurons
-                    # (unit = # neurons in layer, activation function, *if first layer* shape of input data)
-                # input_shape: The dimension of 1 Data Point (# of rows in one column)
-            model = tf.keras.Sequential()
-            # Model Layers
-            
-            #model.add(tf.keras.layers.Reshape((1,4)))
-            #model.add(tf.keras.layers.LSTM(256))
-            
-            #model.add(tf.keras.layers.Dropout(.02, input_shape=(dim,)))
-            
-            model.add(tf.keras.layers.Dense(units=4, activation=tf.nn.tanh))
-            #model.add(tf.keras.layers.Dense(units=3, activation=tf.nn.tanh))
-            
-            #model.add(tf.keras.layers.Dropout(.02, input_shape=(dim,)))
-            
-            model.add(tf.keras.layers.Dense(units=6, activation='softmax'))
-            
-            
-            # Define the Loss Function and Optimizer for the Model
-                # Compile: Initializing the optimizer and the loss in the Neural Network
-                # Optimizer: The method used to change the Weights in the Network
-                # Loss: The Function used to estimate how bad our weights are
-            if opt == None:
-                opt = tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07, amsgrad=False)
-            if loss == None:
-                loss = 'categorical_hinge'
-            if metric == None:
-                metric = ['logcosh', 'mae', 'categorical_crossentropy']
-            self.opt = opt
-            self.loss = loss
-            self.metric = metric
-            #sgd = tf.keras.optimizers.SGD(lr=0.01, momentum=0.9)
-            model.compile(optimizer = opt, loss = loss, metrics = list([metric]))
-            print("New Neural Network Created")
-        self.model = model
-        self.name = name
+            # Else, Create the Model
+            self.createModel(dataDim, opt=None, loss=None, metric=None)
 
 
+    def loadModel(self, modelPath):
+        # Tries to find a compiled model identical to name (in same folder)
+        with CustomObjectScope({'GlorotUniform': glorot_uniform()}):
+            self.model = load_model(modelPath)
+        print("NN Model Loaded")
     
-    def train_model(self, Training_Data, Training_Labels, epochs = 500, seeTrainingSteps = True):
+    def createModel(self, dataDim, opt=None, loss=None, metric=None):
+        """
+        Parameters
+        ----------
+        dataDim : The dimension of 1 data point (# of columns in data)
+        opt : Neural Network Optimizer
+        loss : Neural Network Loss Function
+        metric : Neurala Network Metric to Score Accuracy
+        """
+        # Define a TensorFlow Neural Network using Keras
+            # Sequential: Input the List of Hidden Layers into the Network (in order)
+            # Dense: Adds a layer of neurons
+                # (unit = # neurons in layer, activation function, *if first layer* shape of input data)
+            # Input_shape: The dimension of 1 Data Point (# of rows in one column)
+        model = tf.keras.Sequential()
+        
+        # Model Layers
+        #model.add(tf.keras.layers.Reshape((1,4)))
+        #model.add(tf.keras.layers.LSTM(256))
+        model.add(tf.keras.layers.Dense(units=4, activation=tf.nn.tanh))
+        #model.add(tf.keras.layers.Dense(units=3, activation=tf.nn.tanh))
+        #model.add(tf.keras.layers.Dropout(.02, input_shape=(dim,)))
+        model.add(tf.keras.layers.Dense(units=6, activation='softmax'))
+        
+        # Define the Loss Function and Optimizer for the Model
+            # Compile: Initializing the optimizer and the loss in the Neural Network
+            # Optimizer: The method used to change the Weights in the Network
+            # Loss: The Function used to estimate how bad our weights are
+        if opt == None:
+            opt = tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07, amsgrad=False)
+        if loss == None:
+            loss = 'categorical_hinge'
+        if metric == None:
+            metric = ['logcosh', 'mae', 'categorical_crossentropy']
+        
+        # Compile the Model
+        model.compile(optimizer = opt, loss = loss, metrics = list([metric]))
+        # Store the Model in the Class
+        self.model = model
+        print("NN Model Created")
+    
+    def trainModel(self, Training_Data, Training_Labels, Testing_Data, Testing_Labels, epochs = 500, seeTrainingSteps = False):
         # For mini-batch gradient decent we want it small (not full batch) to better generalize data
-        max_batch_size = 32                    # Keep Batch sizes relatively small (no more than 32 or 64)
+        max_batch_size = 128  # Keep Batch sizes relatively small (no more than 64 or 128)
         mini_batch_gd = min(len(Training_Data)//4, max_batch_size)
         mini_batch_gd = max(1, mini_batch_gd)  # For really small data samples at least take 1 data point
         # For every Epoch (loop), run the Neural Network by:
             # With uninitialized weights, bring data through network
             # Calculate the loss based on the data
             # Perform optimizer to update the weights
-        history = self.model.fit(Training_Data, Training_Labels, validation_split=0.33,
+        self.history = self.model.fit(Training_Data, Training_Labels, validation_split=0.33,
                                  epochs=epochs, shuffle=True, batch_size = mini_batch_gd, verbose = seeTrainingSteps)
-        return history
+        # Score the Model
+        results = self.model.evaluate(Testing_Data, Testing_Labels, batch_size=mini_batch_gd, verbose = seeTrainingSteps)
+        score = results[0]; accuracy = results[1:]
+        print('Test score:', score)
+        print('Test accuracy:', accuracy)
     
     
-    
-    def neural_net_prediction(self, New_Data, New_Labels = 0, printResults = False):
+    def predictData(self, New_Data):
         # Predict Label based on new Data
-        if printResults:
-            print("New Data Predictions \n", self.model.predict(New_Data))
         return self.model.predict(New_Data)
-        
     
-    
-    def save_model(self, outputNueralNetwork):
+    def saveModel(self, outputNueralNetwork):
         self.model.save(outputNueralNetwork)  # creates a HDF5 file 'my_model.h5'    
     
     
-    
-    def plot_statistics(self, history):
+    def plotModel(self):
         # plot loss during training
         pyplot.subplot(211)
         pyplot.title('Loss')
-        pyplot.plot(history.history['loss'], label='train')
-        pyplot.plot(history.history['val_loss'], label='test')
+        pyplot.plot(self.history.history['loss'], label='train')
+        pyplot.plot(self.history.history['val_loss'], label='test')
         pyplot.legend()
         # plot accuracy during training
         #pyplot.subplot(212)
@@ -241,61 +248,6 @@ class Neural_Network:
         #pyplot.plot(history.history['val_accuracy'], label='test')
         #pyplot.legend()
         pyplot.show()
-
-
-
-if __name__ == "__main__":
-    # ---------------------------------------------------------------------- #
-    #    User Parameters to Edit (More Complex Edits are Inside the Files)   #
-    # ---------------------------------------------------------------------- #
-    
-    # Saving the Neural network
-    SaveNeuralNetwork = True
-    saveNeuralNetworkName = "testNet2"
-    saveNeuralNetworkFolder = "./Neural Network/"
-    
-    # ---------------------------------------------------------------------- #
-    # ---------------------------------------------------------------------- #
-    # ---------------------------------------------------------------------- #
-    #           Machine learning Program (Should Not Have to Edit)           #
-    # ---------------------------------------------------------------------- #
-    # ---------------------------------------------------------------------- #
-    # ---------------------------------------------------------------------- #
-    
-    # Input Training Data and Labels
-    # Training_Data: Every row is one data point, Dim(row) = dimensionality of data
-    data = np.array([[1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8],[9,9],[10,10],[11,11],[12,12],[13,13],
-                     [14,14],[15,15],[16,16],[17,17],[18,18],[29,19],[20,20]])
-    labels = np.array([[2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40]]).T
-    # Split into Training and Validation Data
-    Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(
-                            data, labels, test_size=0.2, shuffle= True)
-    # Find the Dimension of the data
-    rows, cols = Training_Data.shape
-    
-    # Display the Training Data
-    plt.figure()
-    plt.plot(Training_Data[:,1], Training_Labels.flatten(), 'r')
-    plt.show()
-    
-    # Make the Neural Network
-    outputNeuralNetwork = saveNeuralNetworkFolder+saveNeuralNetworkName
-    nn = Neural_Network(name = outputNeuralNetwork, dim = cols) # dim = The dimensionality of one data point    
-    # Train the network
-    Neural_Network_Statistics = nn.train_model(Training_Data, Training_Labels, 100)
-    # Make a prediction using new data
-    nn.neural_net_prediction(Testing_Data, Testing_Labels)
-    # Plot the training loss    
-    nn.plot_statistics(Neural_Network_Statistics)
-    # Save the Neural Network for Later Use
-    if SaveNeuralNetwork:
-        nn.save_model()
-    
-    # Display the Testing Data
-    plt.figure()
-    plt.plot(Testing_Data[:,1], Testing_Labels.flatten(), 'b')
-    plt.show()
-
 
 
 

@@ -8,6 +8,9 @@ from sklearn import svm
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import ListedColormap
+import matplotlib.animation as manimation
+import joblib
+
 
 numClassifiers = 6*(6-1)/2
     
@@ -25,6 +28,13 @@ class SVM:
         self.stepSize = 0.01 # step size in the mesh
         self.cmap_light = ListedColormap(['orange', 'cyan', 'cornflowerblue', 'red']) # Colormap
         self.cmap_bold = ['darkorange', 'c', 'darkblue', 'darkred'] # Colormap
+    
+    def saveModel(self, model, modelPath = "./KNN.sav"):
+        joblib.dump(model, 'scoreregression.pkl')
+    
+    def loadModel(self, modelPath):
+        model = joblib.load(modelPath, mmap_mode ='r')
+        return model
     
     def applySVM(self, Training_Data, Training_Labels, Testing_Data, Testing_Labels):
 
@@ -49,43 +59,59 @@ class SVM:
         """
         
         for i, clf in enumerate((linear, rbf, poly, sig)):
+            FFMpegWriter = manimation.writers['ffmpeg']
+            metadata = dict(title="", artist='Matplotlib', comment='Movie support!')
+            writer = FFMpegWriter(fps=3, metadata=metadata)
+            
+            setPointX4 = 0.002;
+            errorPoint = 0.003;
+            dataWithinChannel4 = Training_Data[abs(Training_Data[:,3] - setPointX4) <= errorPoint]
+            
+            channel3Vals = np.arange(0.0, dataWithinChannel4[:,2].max(), 0.01)
+            
             #defines how many plots: 2 rows, 2columns=> leading to 4 plots
-            plt.subplot(2, 2, i + 1) #i+1 is the index
+            fig = plt.figure()
             plt.rcParams['figure.dpi'] = 300
             #space between plots
             plt.subplots_adjust(wspace=0.4, hspace=0.4)
             
-            #Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])# Put the result into a color plot
-            setPointX3 = 0.015; setPointX4 = 0.022;
-            errorPoint = 0.003
-            x3 = np.ones(np.shape(xx.ravel())[0])*setPointX3
-            x4 = np.ones(np.shape(xx.ravel())[0])*setPointX4
-            Z = clf.predict(np.c_[xx.ravel(), yy.ravel(), x3, x4])# Put the result into a color plot
+            with writer.saving(fig, "./Machine Learning Modules/ML Videos/SVM_" + clf.kernel + ".mp4", 300):
+                for setPointX3 in channel3Vals:
             
-            Z = Z.reshape(xx.shape)
-            plt.contourf(xx, yy, Z, cmap=plt.cm.PuBuGn, alpha=0.7)# Plot also the training points
-            
-            xPoints = []; yPoints = []; yLabelPoints = []
-            for j,point in enumerate(Training_Data):
-                if abs(point[2] - setPointX3) < errorPoint and abs(point[3] - setPointX4) < errorPoint:
-                    xPoints.append(point[0])
-                    yPoints.append(point[1])
-                    yLabelPoints.append(Training_Labels[j])
-            
-            plt.scatter(xPoints, yPoints, c=yLabelPoints, cmap=plt.cm.PuBuGn, edgecolors='grey')
-            
-            
-            #plt.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.PuBuGn, edgecolors='grey')
-            
-            plt.xlabel('Channel 1')
-            plt.ylabel('Channel 2')
-            plt.xlim(xx.min(), xx.max())
-            plt.ylim(yy.min(), yy.max())
-            plt.xticks(())
-            plt.yticks(())
-            plt.title(titles[i])
-            
-            plt.show()
+                    x3 = np.ones(np.shape(xx.ravel())[0])*setPointX3
+                    x4 = np.ones(np.shape(xx.ravel())[0])*setPointX4
+                    Z = clf.predict(np.c_[xx.ravel(), yy.ravel(), x3, x4])# Put the result into a color plot
+                    
+                    Z = Z.reshape(xx.shape)
+                    plt.contourf(xx, yy, Z, cmap=plt.cm.get_cmap('cubehelix', 6), alpha=0.7, vmin=0, vmax=5)
+                    
+                    xPoints = []; yPoints = []; yLabelPoints = []
+                    for j, point in enumerate(Training_Data):
+                        if abs(point[2] - setPointX3) <= errorPoint and abs(point[3] - setPointX4) <= errorPoint:
+                            xPoints.append(point[0])
+                            yPoints.append(point[1])
+                            yLabelPoints.append(Training_Labels[j])
+                    
+                    plt.scatter(xPoints, yPoints, c=yLabelPoints, cmap=plt.cm.get_cmap('cubehelix', 6), edgecolors='grey', s=50, vmin=0, vmax=5)
+                    
+                    
+                    #plt.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.PuBuGn, edgecolors='grey')
+                    plt.title(titles[i]+": Channel3 = " + str(round(setPointX3,3)) + "; Channel4 = " + str(setPointX4) + "; Error = " + str(errorPoint))
+                    plt.xlabel('Channel 1')
+                    plt.ylabel('Channel 2')
+                    plt.xlim(xx.min(), xx.max())
+                    plt.ylim(yy.min(), yy.max())
+                    plt.xticks(())
+                    plt.yticks(())
+                    #plt.title(titles[i])
+                    
+                    cb = plt.colorbar(ticks=range(6), label='digit value')
+                    plt.clim(-0.5, 5.5)
+                
+                    # Write to Video
+                    writer.grab_frame()
+                    plt.cla()
+                    cb.remove()
         
         
         

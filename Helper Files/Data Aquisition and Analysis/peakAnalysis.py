@@ -18,7 +18,6 @@ import scipy.signal
 from scipy.signal import lfilter
 # Plotting
 import matplotlib.pyplot as plt
-import matplotlib.animation as manimation
 
 
 # --------------------------------------------------------------------------- #
@@ -26,11 +25,12 @@ import matplotlib.animation as manimation
 
 class globalParam:
     
-    def __init__(self, xWidth = 2000, moveDataFinger = 200, numChannels = 4):
+    def __init__(self, xWidth = 2000, moveDataFinger = 200, numChannels = 4, movementOptions = []):
         # Input Parameters
         self.numChannels = numChannels        # Number of EMG Signals
         self.xWidth = xWidth                  # The X-Wdith of the Plot (Number of Data-Points Shown)
         self.moveDataFinger = moveDataFinger  # The Amount of Data to Stream in Before Finding Peaks
+        self.movementOptions = movementOptions
         
         # Data to Stream in
         self.data = {}
@@ -169,7 +169,7 @@ class globalParam:
         self.xDataEMG = self.data['time_ms'][0:self.xWidth]
 
     
-    def live_plotter(self, dataFinger, seeFullPlot = False, testNeuralNetwork = False, Controller=None, nn=None):
+    def live_plotter(self, dataFinger, seeFullPlot = False, myModel = None, Controller=None):
                 
         # Get X Data: Shared Axis for All Channels
         self.xDataEMG = self.data['time_ms'][dataFinger:dataFinger + self.xWidth]
@@ -213,43 +213,7 @@ class globalParam:
             self.movieGraphChannelListFiltered[dataChannel].set_data(xDataRMS, RMSData[-self.xWidthPeaks:])
             self.channelListFiltered[dataChannel].set_xlim(xDataRMS[0], xDataRMS[0] + self.xWidthPeaks)
             # -------------------------------------------------------------------#
-            
-            # ------------------------- Move Robot  -----------------------------#
-            # If Testing the Robot, Send Peaks Through NN After Peak is Collected
-            if testNeuralNetwork:
-                currentPeakAnalyzing = xDataRMS[-(len(newRMSData) + self.peakDetectionBufferSize)]
-                lastXPeakLoc = max([max(max(self.xTopGrouping[dataChannel].values()), default=0) for i in range(self.numChannels)])
-                if currentPeakAnalyzing - lastXPeakLoc > self.maxPeakSep and self.lastPeakAnalyzed < self.currentGroupNum:
-                    self.lastPeakAnalyzed = self.currentGroupNum
-                    groupFeatures = []
-                    for channel in range(self.numChannels):
-                        channelFeatures = self.xTopGrouping[channel][self.currentGroupNum]
-                        if channelFeatures == []:
-                            groupFeatures.append(0)
-                        else:
-                            groupFeatures.append(np.mean(channelFeatures))
-                    inputData = np.array([groupFeatures])
-                    predictionProbs = nn.model.predict(inputData)
-                    predictedIndex = np.argmax(predictionProbs)
-                    predictedLabel = movementOptions[predictedIndex]
-                    print("The Predicted Label is", predictedLabel)
-                    if Controller:
-                        if predictedLabel == "left":
-                            Controller.moveLeft()
-                        elif predictedLabel == "right":
-                            Controller.moveRight()
-                        elif predictedLabel == "down":
-                            Controller.moveDown()
-                        elif predictedLabel == "up":
-                            Controller.moveUp()
-                        elif predictedLabel == "grab":
-                            print("Grabbing")
-                            continue
-                        elif predictedLabel == "release":
-                            print("Releasing")
-                            continue
-            # -------------------------------------------------------------------#
-            
+
             # ----------------------- Peak Detection  ---------------------------#
             # Get Most Current RMS Data (Add Buffer in Case the peak is Cut Off)
             bufferRMSData = RMSData[-(len(newRMSData) + self.peakDetectionBufferSize):]
@@ -268,11 +232,13 @@ class globalParam:
             self.currentGroupNum = max(self.xTopGrouping[dataChannel].keys(), default=0)
             highestXPeak = max([max(max(self.xTopGrouping[i].values()), default=0) for i in range(self.numChannels)])
             if abs(xPeakTop[0] - highestXPeak) > self.maxPeakSep and highestXPeak != 0:
+                if myModel:
+                    self.predictMovement(myModel, Controller)
                 self.currentGroupNum += 1
                 for channel in range(self.numChannels):
                     self.xTopGrouping[channel][self.currentGroupNum] = []
                     self.featureSetGrouping[channel][self.currentGroupNum] = []
-            batchXGroups, featureSetTemp = self.featureDefinition(RMSData, xPeakTop, self.currentGroupNum)
+            batchXGroups, featureSetTemp = self.featureDefinition(RMSData, xPeakTop, self.currentGroupNum, myModel, Controller)
             # Update Overall Grouping Dictionary
             for groupNum in batchXGroups.keys():
                 # Get New Peaks/Features to Add
@@ -397,7 +363,7 @@ class globalParam:
         
         return RMSData
 
-    def featureDefinition(self, RMSData, xTop, currentGroupNum):
+    def featureDefinition(self, RMSData, xTop, currentGroupNum, myModel = None, Controller = None):
         featureSet = []
         correctionTerm = 0
         # For Every Peak, Take the Average of the Points in Front of it
@@ -426,6 +392,8 @@ class globalParam:
                 xGrouping[currentGroupNum].append(xTop[i+1])
             # New Group
             else:
+                if myModel:
+                    self.predictMovement(myModel, Controller)
                 self.currentGroupNum += 1
                 for channel in range(self.numChannels):
                     self.xTopGrouping[channel][self.currentGroupNum] = []
@@ -454,6 +422,37 @@ class globalParam:
                 oldPeaks[channel][xLoc] = yTop[i]
         # Return New Peaks and Update Peak Dictionary
         return newTopPeaks, oldPeaks
+    
+    def predictMovement(self, myModel, Controller = None):
+        # Get FeatureSet Point for Group
+        groupFeatures = []
+        for channel in range(self.numChannels):
+            channelFeature = self.xTopGrouping[channel][self.currentGroupNum]
+            if channelFeature == []:
+                groupFeatures.append(0)
+            else:
+                groupFeatures.append(np.mean(channelFeature))
+        inputData = np.array([groupFeatures])
+        
+        # Predict 
+        #predictionProbs = myModel.model.predict(inputData)
+        #predictedIndex = np.argmax(predictionProbs)
+        predictedIndex = myModel.model.predict(inputData)[0]
+        predictedLabel = self.movementOptions[predictedIndex]
+        print("The Predicted Label is", predictedLabel)
+        if Controller:
+            if predictedLabel == "left":
+                Controller.moveLeft()
+            elif predictedLabel == "right":
+                Controller.moveRight()
+            elif predictedLabel == "down":
+                Controller.moveDown()
+            elif predictedLabel == "up":
+                Controller.moveUp()
+            elif predictedLabel == "grab":
+                print("Grabbing")
+            elif predictedLabel == "release":
+                print("Releasing")
 
 
 
