@@ -209,6 +209,12 @@ class globalParam:
                 print("Please Decrease Your rmsWindow Size or Increase xWidth")
                 sys.exit()
             xDataRMS = self.data['time_ms'][max(len(RMSData) - self.xWidthPeaks,0):len(RMSData)]  
+            # Get New Peak if you Enough Points have Passed
+            self.currentGroupNum = max(self.xTopGrouping[dataChannel].keys(), default=0)
+            currentHighestXPeak = max([max(self.xTopGrouping[i][self.currentGroupNum], default=0) for i in range(self.numChannels)])
+            if abs(xDataRMS[-1] - currentHighestXPeak) > self.maxPeakSep and currentHighestXPeak != 0:
+                print("Waited Peak")
+                self.createNewGroup(myModel, Controller)
             # Plot RMS Data
             self.movieGraphChannelListFiltered[dataChannel].set_data(xDataRMS, RMSData[-self.xWidthPeaks:])
             self.channelListFiltered[dataChannel].set_xlim(xDataRMS[0], xDataRMS[0] + self.xWidthPeaks)
@@ -228,11 +234,10 @@ class globalParam:
             # -------------------------------------------------------------------#
             
             # --------------------- Feature Extraction  -------------------------#
-            # Features Analysis to Group Peaks Together  
-            self.currentGroupNum = max(self.xTopGrouping[dataChannel].keys(), default=0)
-            highestXPeak = max([max(max(self.xTopGrouping[i].values()), default=0) for i in range(self.numChannels)])
-            if abs(xPeakTop[0] - highestXPeak) > self.maxPeakSep and highestXPeak != 0:
+            # If New Peak Was Found with Enough Peak Seperation, Add Group 
+            if abs(xPeakTop[0] - currentHighestXPeak) > self.maxPeakSep and currentHighestXPeak != 0:
                 self.createNewGroup(myModel, Controller)
+            # Features Analysis to Group Peaks Together 
             batchXGroups, featureSetTemp = self.featureDefinition(RMSData, xPeakTop, self.currentGroupNum, myModel, Controller)
             # Update Overall Grouping Dictionary
             for groupNum in batchXGroups.keys():
@@ -399,7 +404,7 @@ class globalParam:
         numpyDataY = np.array(yData)
         numpyDataX = np.array(xData)
         # Find Peak Indices
-        indicesTop = scipy.signal.find_peaks(yData, prominence=.025, height=0.005, width=20, rel_height=0.4, distance = 100)[0]
+        indicesTop = scipy.signal.find_peaks(yData, prominence=.03, height=0.01, width=15, rel_height=0.5, distance = 100)[0]
         # Get X,Y Peaks
         xTop = numpyDataX[indicesTop]
         yTop = numpyDataY[indicesTop]
@@ -425,12 +430,9 @@ class globalParam:
         # Get FeatureSet Point for Group
         groupFeatures = []
         for channel in range(self.numChannels):
+            # Get the Features for the Group and Take the First One
             channelFeature = self.featureSetGrouping[channel][self.currentGroupNum]
             groupFeatures.append((channelFeature or [0])[0])
-            #if channelFeature == []:
-            #    groupFeatures.append(0)
-            #else:
-            #    groupFeatures.append(np.mean(channelFeature))
         inputData = np.array([groupFeatures])
         
         # Predict Data

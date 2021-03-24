@@ -190,6 +190,9 @@ class Neural_Network:
         #model.add(tf.keras.layers.Reshape((1,4)))
         #model.add(tf.keras.layers.LSTM(256))
         model.add(tf.keras.layers.Dense(units=4, activation=tf.nn.tanh))
+        model.add(tf.keras.layers.Dense(units=8, activation=tf.nn.tanh))
+        model.add(tf.keras.layers.Dense(units=12, activation=tf.nn.tanh))
+        model.add(tf.keras.layers.Dense(units=8, activation=tf.nn.tanh))
         #model.add(tf.keras.layers.Dense(units=3, activation=tf.nn.tanh))
         #model.add(tf.keras.layers.Dropout(.02, input_shape=(dim,)))
         model.add(tf.keras.layers.Dense(units=6, activation='softmax'))
@@ -201,9 +204,9 @@ class Neural_Network:
         if opt == None:
             opt = tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07, amsgrad=False)
         if loss == None:
-            loss = 'categorical_hinge'
+            loss = 'cosine_similarity'
         if metric == None:
-            metric = ['logcosh', 'mae', 'categorical_crossentropy']
+            metric = ['accuracy', 'logcosh']
         
         # Compile the Model
         model.compile(optimizer = opt, loss = loss, metrics = list([metric]))
@@ -224,7 +227,7 @@ class Neural_Network:
                                  epochs=epochs, shuffle=True, batch_size = mini_batch_gd, verbose = seeTrainingSteps)
         # Score the Model
         results = self.model.evaluate(Testing_Data, Testing_Labels, batch_size=mini_batch_gd, verbose = seeTrainingSteps)
-        score = results[0]; accuracy = results[1:]
+        score = results[0]; accuracy = results[1]; 
         print('Test score:', score)
         print('Test accuracy:', accuracy)
     

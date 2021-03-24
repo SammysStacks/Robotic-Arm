@@ -20,7 +20,6 @@ class initiateRobot:
         self.posError = 0.01
         
         # Define Movement Parameters
-        # Define Movement Parameters
         self.maxSpeed = [0.3, 0.3, 0.3, 0.3, 0.3]
         self.accel = [1.5, 1.5, 1.5, 1.5, 1.5]
         self.decel = [-1.5, -1.5, -1.5, -1.5, -1.5]
@@ -61,9 +60,9 @@ class initiateRobot:
         else: 
             return True
     
-    def waitUntilStoped(self):
+    def waitUntilStoped(self, waitTime = 0.5):
         while self.isMoving():
-            time.sleep(0.5)
+            time.sleep(waitTime)
             
     def powerUp(self, mode):
         print("Powering On")
@@ -77,7 +76,8 @@ class initiateRobot:
         print("Powering Off")
         self.waitUntilStoped()
         innfos.setpos(self.actuID, self.RestPos)
-        self.waitUntilStoped()
+        time.sleep(2)
+        self.waitUntilStoped(waitTime = 1)
         innfos.disableact(self.actuID)
     
     def checkConnection(self):
