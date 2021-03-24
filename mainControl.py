@@ -31,6 +31,7 @@
 # Basic Modules
 import sys
 import numpy as np
+import collections
 
 # Neural Network Modules
 from sklearn.model_selection import train_test_split
@@ -123,13 +124,19 @@ if __name__ == "__main__":
             print("\nCollected Signal Data")
             
             # Split the Data into Training and Validation Sets
-            signalLabelsKNN = [np.argmax(i) for i in signalLabels]
-            Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabelsKNN, test_size=0.2, shuffle= True, stratify=signalLabels)
-            
+            signalLabelsClass = [np.argmax(i) for i in signalLabels]
+            Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabelsClass, test_size=0.1, shuffle= True, stratify=signalLabels)
+        
             # Train the Classifier with the Training Data
             MLModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels)
             # Plot the Training Loss    
-            MLModel.plotModel(signalData, signalLabelsKNN)
+            MLModel.plotModel(signalData, signalLabelsClass)
+            
+            # Find the Data Distribution
+            classDistribution = collections.Counter(signalLabelsClass)
+            print("Class Distribution:", classDistribution)
+            print("Number of Data Points = ", len(classDistribution))
+            
 
             # Save the Classifier
             if SaveModel:
@@ -139,6 +146,8 @@ if __name__ == "__main__":
         if saveInputData:
             saveInputs = excelData.saveExcel(numChannels)
             saveInputs.saveData(readData.data, readData.xTopGrouping, readData.featureSetGrouping, saveDataFolder, saveExcelName, sheetName, handMovement)
+        
+
         
     # If Something Goes Wrong, Power Down Robot (Controlled)
     except:
