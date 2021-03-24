@@ -116,7 +116,8 @@ class readExcel(globalParam):
                 if len(dataHold) == 0:
                     break
                 # Collect Point as Data
-                featureAv = np.nanmean(np.where(dataHold>0, dataHold, np.nan), axis=0)
+                #featureAv = np.nanmean(np.where(dataHold>0, dataHold, np.nan), axis=0)
+                featureAv = dataHold[0]
                 Training_Data = np.vstack((Training_Data, featureAv))
                 Training_Labels = np.vstack((Training_Labels, featureLabel))
                 # Reset Group Holder
@@ -158,7 +159,7 @@ class readExcel(globalParam):
                         print("\tReanalyzing Excel Sheet:", excelSheet.title)
                         # ReAnalyze Data (First Four Columns)
                         self.streamExcelData(trainingExcelFile, analyzeSheet=excelSheet)
-                        # Delete the Previous Analysis from Excel
+                        # Delete the Previous Analysis from Excel (Save Name/Info)
                         sheetName = excelSheet.title
                         handMovement = sheetName.split(" - ")[1]
                         WB.remove_sheet(excelSheet)
@@ -209,8 +210,8 @@ class saveExcel:
         elif WB:
             print("\tOverWriting Excel File:", excel_file)
             #WB = xl.load_workbook(excel_file, read_only=False)
-            WB_worksheet = sheetName.title
-            print("\tSaving Sheet as", sheetName)
+            WB_worksheet = WB.create_sheet(sheetName.title)
+            print("\tSaving Sheet as", WB_worksheet.title)
         # Loading in Previous Excel File, Creating New Sheet, Editing Trial Number in SheetName
         else:
             print("Excel File Already Exists. Loading File")
@@ -234,24 +235,18 @@ class saveExcel:
         
         xPeakHeader = ['Channel 1 X Peaks', 'Channel 2 X Peaks', 'Channel 3 X Peaks', 'Channel 4 X Peaks']
         featureHeader = ['Channel 1 Features', 'Channel 2 Features', 'Channel 3 Features', 'Channel 4 Features']
-        if WB:
-            # Label First Row
-            header = ['Channel 1', 'Channel 2', 'Channel 3', 'Channel 4']
-            header.extend(xPeakHeader)
-            header.extend(featureHeader)
-            WB_worksheet.append(header)
-            
-            # Save Data to Worksheet
-            for dataNum in range(len(data['time_ms'])):
-                row = []
-                for channel in range(self.numChannels):
-                    row.append(data['Channel'+str(1+channel)][dataNum])
-                WB_worksheet.append(row)
-        else:
-            for cells in WB_worksheet.iter_rows(min_col=5, min_row=1, max_col=12, max_row=1):
-                colE, colF, colG, colH, colI, colJ, colK, colL = cells[0], cells[1], cells[2], cells[3], cells[4], cells[5], cells[6], cells[7]
-                [colE.value, colF.value, colG.value, colH.value] = xPeakHeader
-                [colI.value, colJ.value, colK.value, colL.value] = featureHeader
+        # Label First Row
+        header = ['Channel 1', 'Channel 2', 'Channel 3', 'Channel 4']
+        header.extend(xPeakHeader)
+        header.extend(featureHeader)
+        WB_worksheet.append(header)
+        
+        # Save Data to Worksheet
+        for dataNum in range(len(data['time_ms'])):
+            row = []
+            for channel in range(self.numChannels):
+                row.append(data['Channel'+str(1+channel)][dataNum])
+            WB_worksheet.append(row)
                 
       #  for col in WB_worksheet.iter_cols(min_row=1, min_col = 1, max_col=3, max_row=1):
        #    print(col, len(col))
@@ -291,4 +286,3 @@ class saveExcel:
         # Save as New Excel File
         WB.save(excel_file)
         WB.close()
-        print("DONE")

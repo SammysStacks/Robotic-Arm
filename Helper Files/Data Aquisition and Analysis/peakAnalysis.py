@@ -232,12 +232,7 @@ class globalParam:
             self.currentGroupNum = max(self.xTopGrouping[dataChannel].keys(), default=0)
             highestXPeak = max([max(max(self.xTopGrouping[i].values()), default=0) for i in range(self.numChannels)])
             if abs(xPeakTop[0] - highestXPeak) > self.maxPeakSep and highestXPeak != 0:
-                if myModel:
-                    self.predictMovement(myModel, Controller)
-                self.currentGroupNum += 1
-                for channel in range(self.numChannels):
-                    self.xTopGrouping[channel][self.currentGroupNum] = []
-                    self.featureSetGrouping[channel][self.currentGroupNum] = []
+                self.createNewGroup(myModel, Controller)
             batchXGroups, featureSetTemp = self.featureDefinition(RMSData, xPeakTop, self.currentGroupNum, myModel, Controller)
             # Update Overall Grouping Dictionary
             for groupNum in batchXGroups.keys():
@@ -392,12 +387,7 @@ class globalParam:
                 xGrouping[currentGroupNum].append(xTop[i+1])
             # New Group
             else:
-                if myModel:
-                    self.predictMovement(myModel, Controller)
-                self.currentGroupNum += 1
-                for channel in range(self.numChannels):
-                    self.xTopGrouping[channel][self.currentGroupNum] = []
-                    self.featureSetGrouping[channel][self.currentGroupNum] = []
+                self.createNewGroup(myModel, Controller)
                 peakGrouping[currentGroupNum] = [featureSet[i+1]]
                 xGrouping[currentGroupNum] = [xTop[i+1]]
      
@@ -409,7 +399,7 @@ class globalParam:
         numpyDataY = np.array(yData)
         numpyDataX = np.array(xData)
         # Find Peak Indices
-        indicesTop = scipy.signal.find_peaks(yData, prominence=.05, height=0.01, distance=100)[0]
+        indicesTop = scipy.signal.find_peaks(yData, prominence=.025, height=0.005, width=20, rel_height=0.4, distance = 100)[0]
         # Get X,Y Peaks
         xTop = numpyDataX[indicesTop]
         yTop = numpyDataY[indicesTop]
@@ -423,21 +413,28 @@ class globalParam:
         # Return New Peaks and Update Peak Dictionary
         return newTopPeaks, oldPeaks
     
+    def createNewGroup(self, myModel, Controller):
+        if myModel:
+            self.predictMovement(myModel, Controller)
+        self.currentGroupNum += 1
+        for channel in range(self.numChannels):
+            self.xTopGrouping[channel][self.currentGroupNum] = []
+            self.featureSetGrouping[channel][self.currentGroupNum] = []
+    
     def predictMovement(self, myModel, Controller = None):
         # Get FeatureSet Point for Group
         groupFeatures = []
         for channel in range(self.numChannels):
             channelFeature = self.featureSetGrouping[channel][self.currentGroupNum]
-            if channelFeature == []:
-                groupFeatures.append(0)
-            else:
-                groupFeatures.append(np.mean(channelFeature))
+            groupFeatures.append((channelFeature or [0])[0])
+            #if channelFeature == []:
+            #    groupFeatures.append(0)
+            #else:
+            #    groupFeatures.append(np.mean(channelFeature))
         inputData = np.array([groupFeatures])
         
-        # Predict 
-        #predictionProbs = myModel.model.predict(inputData)
-        #predictedIndex = np.argmax(predictionProbs)
-        predictedIndex = myModel.model.predict(inputData)[0]
+        # Predict Data
+        predictedIndex = myModel.predictData(inputData)[0]
         predictedLabel = self.movementOptions[predictedIndex]
         print("The Predicted Label is", predictedLabel)
         if Controller:

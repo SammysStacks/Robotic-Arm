@@ -1,7 +1,5 @@
 """
 https://scikit-learn.org/stable/auto_examples/neighbors/plot_nca_classification.html#sphx-glr-auto-examples-neighbors-plot-nca-classification-py
-
-
 """
 
 import numpy as np
@@ -42,7 +40,10 @@ class KNN:
     def trainModel(self, Training_Data, Training_Labels, Testing_Data, Testing_Labels):  
         # Train the Model
         self.model.fit(Training_Data, Training_Labels)
-        print("Score:", self.model.score(Testing_Data, Testing_Labels))
+        self.scoreModel(Testing_Data, Testing_Labels)
+    
+    def scoreModel(self, signalData, signalLabels):
+        print("Score:", self.model.score(signalData, signalLabels))
     
     def predictData(self, New_Data):
         # Predict Label based on new Data
@@ -64,12 +65,15 @@ class KNN:
         fig = plt.figure()
         
         # Set Channel4 as Constant: Display Data ONLY in This Range
-        setPointX4 = 0.002; # Channel 4's Value
-        errorPoint = 0.003; # Width of Channel 4's Values
+        setPointX4 = 0.004; # Channel 4's Value
+        errorPoint = 0.005; # Width of Channel 4's Values
         x4 = np.ones(np.shape(xx.ravel())[0])*setPointX4
         dataWithinChannel4 = signalData[abs(signalData[:, 3] - setPointX4) <= errorPoint]
         # Initialize Relevant Channel 3 Range
-        channel3Vals = np.arange(0.0, dataWithinChannel4[:,2].max(), 0.01)
+        channel3Vals = np.arange(0.0, dataWithinChannel4[:,2].max(initial=0), 0.01)
+        if len(channel3Vals) == 0:
+            print("No Values Found in Channel 4")
+            return None
         
         # Plot Data with Different Channel 3 Values, and Save as Movie
         with writer.saving(fig, "./Machine Learning Modules/ML Videos/KNN_" + self.weight + ".mp4", 300):
@@ -78,7 +82,7 @@ class KNN:
                 x3 = np.ones(np.shape(xx.ravel())[0])*setPointX3
                 
                 # Predict Every Point's Class With the Trained Model
-                handMovements = self.model.predict(np.c_[xx.ravel(), yy.ravel(), x3, x4])
+                handMovements = self.predictData(np.c_[xx.ravel(), yy.ravel(), x3, x4])
                 # Rearrange the Data to Match the 2D Plot                  
                 handMovements = handMovements.reshape(xx.shape)
                 # Plot the Predicted Classes

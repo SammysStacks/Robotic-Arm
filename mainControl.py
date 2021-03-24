@@ -36,8 +36,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 # Imort Helper Files
-sys.path.append('./Helper Files/')  # Folder with All the Helper Files
-import connectArduinoFindPeaks as dataControl # Functions to Stream in Data and Find Peaks
+sys.path.append('./Helper Files/Robotic Control/')  # Folder with All the Helper Files
 import moveRobot as robotControl              # Functions to Control Robot Movement
 
 # Import Data Aquisition and Analysis Files
@@ -138,7 +137,8 @@ if __name__ == "__main__":
             
         # Save the Data (if Wanted)
         if saveInputData:
-            dataControl.saveTestData(saveDataFolder, saveExcelName, handMovement, sheetName)
+            saveInputs = excelData.saveExcel(numChannels)
+            saveInputs.saveData(readData.data, readData.xTopGrouping, readData.featureSetGrouping, saveDataFolder, saveExcelName, sheetName, handMovement)
         
     # If Something Goes Wrong, Power Down Robot (Controlled)
     except:
