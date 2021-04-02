@@ -434,6 +434,9 @@ class globalParam:
             channelFeature = self.featureSetGrouping[channel][self.currentGroupNum]
             groupFeatures.append((channelFeature or [0])[0])
         inputData = np.array([groupFeatures])
+        if len(inputData[inputData > 0]):
+            print("Only One Signal Found; Not Moving Robot")
+            return None
         
         # Predict Data
         predictedIndex = myModel.predictData(inputData)[0]
