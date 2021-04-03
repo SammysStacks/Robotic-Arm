@@ -4,12 +4,19 @@ import sys
 import functools
 # Import innfosControlFunctions.py (Must be in Same Folder!)
 import innfosControlFunctions as innfos
+# Import UI
+sys.path.append('../GUI Design/')
+from GUI import Ui_MainWindow
 
 # --------------------------------------------------------------------------- #
 # --------------------------- User Can Edit --------------------------------- #
 
-class initiateRobot:
-    def __init__(self):        
+class initiateRobot(Ui_MainWindow):
+    def __init__(self, MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5):
+        super().__init__(MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5)
+        
         # Label Actuators
         self.actuID = [0x01, 0x02, 0x03, 0x04, 0x05]
         
@@ -17,10 +24,11 @@ class initiateRobot:
         self.HomePos = [-1, -10, 5, 12, 0] # Set the Start/End Home Position
         self.FancyPos = [-1, -14, -8, 13, 0] # Set the Start/End Home Position
         self.RestPos = [-1.2004829049110413, 0.2907487154006958, 1.065185546875, 1.10516357421875, 0.00054931640625] # Set the Start/End Home Position
-        self.posError = 0.01
+        self.posError = 0.001
         
         # Define Movement Parameters
-        self.maxSpeed = [0.3, 0.3, 0.3, 0.3, 0.3]
+        # Define Movement Parameters
+        self.maxSpeed = [0.1, 0.1, 0.1, 0.1, 0.1]
         self.accel = [1.5, 1.5, 1.5, 1.5, 1.5]
         self.decel = [-1.5, -1.5, -1.5, -1.5, -1.5]
         #actuID = innfos.queryID(6)
@@ -36,8 +44,8 @@ class initiateRobot:
         time.sleep(0.5)
         
         # Set Position Limits
-        upperPosLim = [14, 0.3, 14, 14, 14]
-        lowerPosLim = [-14, -16, -14, -14, -14]
+        upperPosLim = [20, 20, 20, 20, 20]
+        lowerPosLim = [-20, -20, -20, -20, -20]
         innfos.poslimit(self.actuID, upperPosLim, lowerPosLim)
         time.sleep(0.5)
     
@@ -50,7 +58,9 @@ class initiateRobot:
             self.RestPos = pos
         else:
             currentPos = self.getCurrentPos()
-            self.RestPos = currentPos
+            print(currentPos)
+            self.RestPos = currentPos.copy()
+            print(self.RestPos)
     
     def isMoving(self):
         initalPos = self.getCurrentPos()
@@ -60,9 +70,9 @@ class initiateRobot:
         else: 
             return True
     
-    def waitUntilStoped(self, waitTime = 0.5):
+    def waitUntilStoped(self):
         while self.isMoving():
-            time.sleep(waitTime)
+            time.sleep(0.5)
             
     def powerUp(self, mode):
         print("Powering On")
@@ -75,9 +85,9 @@ class initiateRobot:
     def powerDown(self):
         print("Powering Off")
         self.waitUntilStoped()
+        print(self.RestPos)
         innfos.setpos(self.actuID, self.RestPos)
-        time.sleep(2)
-        self.waitUntilStoped(waitTime = 1)
+        self.waitUntilStoped()
         innfos.disableact(self.actuID)
     
     def checkConnection(self):
@@ -94,6 +104,11 @@ class initiateRobot:
         except Exception as e:
             print('Connection Error:', e)
             sys.exit()
+    
+    def stopRobot(self):
+        while self.isMoving():
+            stopAt = self.getCurrentPos()
+            self.moveTo(stopAt)
     
     def updateMovementParams(self, newVal, mode, motorNum = None):
         """
@@ -113,12 +128,28 @@ class initiateRobot:
                 return None
             
             # Update the Correct Movement Parameter
-            if mode == 'speed':
-                self.maxSpeed = newVal
+            if mode == 'speed':                
+                # If You are Slowing it Down, Stop the Robot First
+                if self.maxSpeed[0] > newVal[0]:
+                    # Change the Value
+                    self.maxSpeed = newVal
+                    self.stopRobot()
+                    self.click_Move_Arm()
+                else:
+                    # Change the Value
+                    self.maxSpeed = newVal
             elif mode == "accel":
                 self.accel = newVal
+                # If You are Slowing it Down, Stop the Robot First
+                if self.maxSpeed[0] > newVal[0]:
+                    self.stopRobot()
+                    self.click_Move_Arm()
             elif mode == "decel":
                 self.decel = newVal
+                # If You are Slowing it Down, Stop the Robot First
+                if self.maxSpeed[0] > newVal[0]:
+                    self.stopRobot()
+                    self.click_Move_Arm()
             else:
                 print("No Parameter was Given; None were Changed")
             
@@ -132,25 +163,35 @@ class initiateRobot:
             # Update the Correct Movement Parameter
             if mode == 'speed':
                 self.maxSpeed[motorNum] = newVal
+                # If You are Slowing it Down, Stop the Robot First
+                if self.maxSpeed[0] > newVal[0]:
+                    self.stopRobot()
+                    self.click_Move_Arm()
             elif mode == "accel":
                 self.accel[motorNum] = newVal
+                # If You are Slowing it Down, Stop the Robot First
+                if self.maxSpeed[0] > newVal[0]:
+                    self.stopRobot()
+                    self.click_Move_Arm()
             elif mode == "decel":
                 self.decel[motorNum] = newVal
+                # If You are Slowing it Down, Stop the Robot First
+                if self.maxSpeed[0] > newVal[0]:
+                    self.stopRobot()
+                    self.click_Move_Arm()
             else:
                 print("No Parameter was Given; None were Changed")
                 
         # Set the new limits
         innfos.trapposset(self.actuID, self.accel, self.maxSpeed, self.decel)                
-            
-        
 
-# --------------------------------------------------------------------------- #
-# ---------------------------- Move Robot ----------------------------------- #
 
 class moveRobot(initiateRobot):
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5):
+        super().__init__(MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5)
     
     def homePos(self):
         # Start at Home
@@ -160,11 +201,6 @@ class moveRobot(initiateRobot):
     def moveTo(self, pos):
         # Start at Home
         innfos.setpos(self.actuID, pos)
-    
-    def stopRobot(self):
-        while self.isMoving():
-            stopAt = self.getCurrentPos()
-            self.moveTo(stopAt)
     
     def askUserForInput(self, mode = "oneTime"):
         currentPos = self.getCurrentPos()
@@ -193,13 +229,11 @@ class moveRobot(initiateRobot):
         currentPos = self.getCurrentPos()
         currentPos[0] -= 1
         innfos.setpos(self.actuID, currentPos)
-        self.waitUntilStoped()
     
     def moveRight(self):
         currentPos = self.getCurrentPos()
         currentPos[0] += 1
         innfos.setpos(self.actuID, currentPos)
-        self.waitUntilStoped()
     
     def moveUp(self):
         currentPos = self.getCurrentPos()
@@ -211,7 +245,6 @@ class moveRobot(initiateRobot):
             currentPos[2] -= 1
             currentPos[3] -= 1
         innfos.setpos(self.actuID, currentPos)
-        self.waitUntilStoped()
     
     def moveDown(self):
         currentPos = self.getCurrentPos()
@@ -225,8 +258,42 @@ class moveRobot(initiateRobot):
             currentPos[2] += 1
             currentPos[3] += 1
         innfos.setpos(self.actuID, currentPos)
-        self.waitUntilStoped()
+        
 
+class moveHand(initiateRobot):
+    def __init__(self, handPort, MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5):
+        super().__init__(MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5)
+        # Hand Port
+        self.handPort = handPort
+    
+    def Grab(self):
+        return 1
+    
+    def Release(self):
+        return 1
+    
+    def moveFinger(self, pos, com_f = 'h1', speed = 1):
+        if int(speed) > 5:
+            speed = 5
+        elif int(speed) <=0:
+            speed =0
+        if len(str(pos)) == 1:
+            pos = '00' + str(pos)
+        elif len(str(pos)) == 2:
+            pos = '0' + str(pos)
+        elif len(str(pos)) == 3:
+            pos = str(pos)
+        com = com_f + str(pos) + str(speed)
+        # Move the Finger
+        self.handPort.write(str.encode(com))
+        # Update UI
+        #self.updateUIText(int(com_f[-1]), pos)
+        
+    
+    def updateUIText(self, fingerIndex, fingerPos):
+         self.fingerText[fingerIndex - 1].setText(fingerPos)
 
 # --------------------------------------------------------------------------- #
 # ------------------------- Defined Program --------------------------------- #

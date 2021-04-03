@@ -1,0 +1,676 @@
+{
+    "Adam": {
+        "0.23684210526315788": [
+            "CategoricalHinge",
+            "FalsePositives"
+        ],
+        "0.25877192982456143": [
+            "CategoricalHinge",
+            "TrueNegatives"
+        ],
+        "0.2719298245614035": [
+            "CategoricalHinge",
+            "CategoricalAccuracy",
+            "CategoricalHinge",
+            "MeanAbsolutePercentageError",
+            "CategoricalHinge",
+            "TopKCategoricalAccuracy"
+        ],
+        "0.2894736842105263": [
+            "CategoricalHinge",
+            "SquaredHinge"
+        ],
+        "0.2982456140350877": [
+            "CategoricalHinge",
+            "CategoricalCrossentropy"
+        ],
+        "0.3026315789473684": [
+            "CategoricalHinge",
+            "Precision"
+        ],
+        "0.3157894736842105": [
+            "CategoricalHinge",
+            "Poisson"
+        ],
+        "0.3201754385964912": [
+            "CategoricalHinge",
+            "Accuracy",
+            "CategoricalHinge",
+            "BinaryCrossentropy",
+            "CategoricalHinge",
+            "SpecificityAtSensitivity"
+        ],
+        "0.32894736842105265": [
+            "CategoricalHinge",
+            "AUC",
+            "CategoricalHinge",
+            "MeanAbsoluteError",
+            "CategoricalHinge",
+            "PrecisionAtRecall",
+            "CategoricalHinge",
+            "TruePositives"
+        ],
+        "0.3333333333333333": [
+            "CategoricalHinge",
+            "MeanSquaredLogarithmicError"
+        ],
+        "0.33771929824561403": [
+            "CategoricalHinge",
+            "BinaryAccuracy",
+            "CategoricalHinge",
+            "KLDivergence",
+            "CategoricalHinge",
+            "LogCoshError"
+        ],
+        "0.3508771929824561": [
+            "CategoricalHinge",
+            "Recall"
+        ],
+        "0.35526315789473684": [
+            "CategoricalHinge",
+            "MeanSquaredError",
+            "CosineSimilarity",
+            "CategoricalCrossentropy"
+        ],
+        "0.35964912280701755": [
+            "CategoricalCrossentropy",
+            "MeanIoU"
+        ],
+        "0.36403508771929827": [
+            "CategoricalHinge",
+            "Hinge",
+            "CategoricalHinge",
+            "RootMeanSquaredError"
+        ],
+        "0.3684210526315789": [
+            "CategoricalCrossentropy",
+            "Poisson"
+        ],
+        "0.37280701754385964": [
+            "CategoricalCrossentropy",
+            "AUC",
+            "CategoricalCrossentropy",
+            "CategoricalAccuracy"
+        ],
+        "0.37719298245614036": [
+            "CategoricalCrossentropy",
+            "Precision",
+            "CategoricalCrossentropy",
+            "Recall",
+            "CategoricalHinge",
+            "CosineSimilarity",
+            "LogCosh",
+            "Hinge",
+            "LogCosh",
+            "TopKCategoricalAccuracy"
+        ],
+        "0.3815789473684211": [
+            "CategoricalCrossentropy",
+            "PrecisionAtRecall",
+            "CategoricalCrossentropy",
+            "SensitivityAtSpecificity",
+            "CosineSimilarity",
+            "MeanSquaredError"
+        ],
+        "0.38596491228070173": [
+            "CategoricalCrossentropy",
+            "Hinge"
+        ],
+        "0.39035087719298245": [
+            "CategoricalCrossentropy",
+            "RecallAtPrecision",
+            "LogCosh",
+            "Accuracy"
+        ],
+        "0.39473684210526316": [
+            "CategoricalHinge",
+            "MeanIoU"
+        ],
+        "0.3991228070175439": [
+            "CategoricalCrossentropy",
+            "RootMeanSquaredError",
+            "CosineSimilarity",
+            "Poisson",
+            "CosineSimilarity",
+            "TruePositives"
+        ],
+        "0.40350877192982454": [
+            "LogCosh",
+            "FalseNegatives",
+            "LogCosh",
+            "SpecificityAtSensitivity"
+        ],
+        "0.40789473684210525": [
+            "CategoricalHinge",
+            "FalseNegatives",
+            "LogCosh",
+            "SensitivityAtSpecificity"
+        ],
+        "0.41228070175438597": [
+            "CategoricalCrossentropy",
+            "LogCoshError"
+        ],
+        "0.42105263157894735": [
+            "CategoricalCrossentropy",
+            "BinaryAccuracy",
+            "CategoricalHinge",
+            "SensitivityAtSpecificity",
+            "LogCosh",
+            "MeanAbsoluteError"
+        ],
+        "0.4298245614035088": [
+            "CategoricalHinge",
+            "CategoricalHinge",
+            "CategoricalHinge",
+            "RecallAtPrecision",
+            "LogCosh",
+            "AUC",
+            "LogCosh",
+            "FalsePositives"
+        ],
+        "0.4342105263157895": [
+            "LogCosh",
+            "KLDivergence",
+            "LogCosh",
+            "MeanSquaredError"
+        ],
+        "0.43859649122807015": [
+            "CategoricalCrossentropy",
+            "FalseNegatives",
+            "CategoricalCrossentropy",
+            "TrueNegatives",
+            "CosineSimilarity",
+            "AUC",
+            "CosineSimilarity",
+            "CosineSimilarity",
+            "CosineSimilarity",
+            "TrueNegatives",
+            "LogCosh",
+            "CategoricalAccuracy",
+            "LogCosh",
+            "MeanIoU"
+        ],
+        "0.44298245614035087": [
+            "CategoricalCrossentropy",
+            "Accuracy"
+        ],
+        "0.4517543859649123": [
+            "CategoricalCrossentropy",
+            "KLDivergence",
+            "CategoricalCrossentropy",
+            "MeanSquaredLogarithmicError",
+            "CosineSimilarity",
+            "BinaryAccuracy",
+            "CosineSimilarity",
+            "LogCoshError",
+            "CosineSimilarity",
+            "Precision",
+            "LogCosh",
+            "MeanAbsolutePercentageError"
+        ],
+        "0.45614035087719296": [
+            "CategoricalCrossentropy",
+            "CategoricalCrossentropy",
+            "CategoricalCrossentropy",
+            "FalsePositives",
+            "CategoricalCrossentropy",
+            "TopKCategoricalAccuracy",
+            "CosineSimilarity",
+            "BinaryCrossentropy",
+            "CosineSimilarity",
+            "CategoricalHinge"
+        ],
+        "0.4605263157894737": [
+            "LogCosh",
+            "BinaryAccuracy",
+            "LogCosh",
+            "CategoricalHinge"
+        ],
+        "0.4649122807017544": [
+            "CategoricalCrossentropy",
+            "BinaryCrossentropy"
+        ],
+        "0.4692982456140351": [
+            "CosineSimilarity",
+            "SensitivityAtSpecificity"
+        ],
+        "0.4780701754385965": [
+            "CategoricalCrossentropy",
+            "TruePositives",
+            "CosineSimilarity",
+            "SpecificityAtSensitivity",
+            "LogCosh",
+            "MeanSquaredLogarithmicError"
+        ],
+        "0.4824561403508772": [
+            "CategoricalCrossentropy",
+            "MeanAbsolutePercentageError"
+        ],
+        "0.49122807017543857": [
+            "CategoricalCrossentropy",
+            "CategoricalHinge",
+            "LogCosh",
+            "Recall",
+            "LogCosh",
+            "SquaredHinge"
+        ],
+        "0.4956140350877193": [
+            "CategoricalCrossentropy",
+            "SquaredHinge",
+            "CosineSimilarity",
+            "MeanIoU",
+            "CosineSimilarity",
+            "MeanSquaredLogarithmicError",
+            "LogCosh",
+            "Poisson",
+            "LogCosh",
+            "RootMeanSquaredError"
+        ],
+        "0.5": [
+            "CategoricalCrossentropy",
+            "CosineSimilarity",
+            "LogCosh",
+            "TrueNegatives"
+        ],
+        "0.5043859649122807": [
+            "CategoricalCrossentropy",
+            "MeanSquaredError",
+            "CosineSimilarity",
+            "RootMeanSquaredError",
+            "CosineSimilarity",
+            "SquaredHinge",
+            "LogCosh",
+            "LogCoshError",
+            "LogCosh",
+            "TruePositives"
+        ],
+        "0.5087719298245614": [
+            "CategoricalCrossentropy",
+            "SpecificityAtSensitivity",
+            "LogCosh",
+            "PrecisionAtRecall"
+        ],
+        "0.5131578947368421": [
+            "CosineSimilarity",
+            "PrecisionAtRecall",
+            "CosineSimilarity",
+            "TopKCategoricalAccuracy",
+            "LogCosh",
+            "CategoricalCrossentropy"
+        ],
+        "0.5175438596491229": [
+            "CosineSimilarity",
+            "FalseNegatives",
+            "LogCosh",
+            "RecallAtPrecision"
+        ],
+        "0.5219298245614035": [
+            "CosineSimilarity",
+            "FalsePositives",
+            "CosineSimilarity",
+            "RecallAtPrecision"
+        ],
+        "0.5307017543859649": [
+            "CategoricalCrossentropy",
+            "MeanAbsoluteError"
+        ],
+        "0.5350877192982456": [
+            "CosineSimilarity",
+            "Accuracy",
+            "CosineSimilarity",
+            "CategoricalAccuracy",
+            "LogCosh",
+            "BinaryCrossentropy",
+            "LogCosh",
+            "Precision"
+        ],
+        "0.543859649122807": [
+            "CosineSimilarity",
+            "KLDivergence",
+            "CosineSimilarity",
+            "MeanAbsoluteError"
+        ],
+        "0.5526315789473685": [
+            "CosineSimilarity",
+            "Hinge"
+        ],
+        "0.5570175438596491": [
+            "CosineSimilarity",
+            "Recall"
+        ],
+        "0.5614035087719298": [
+            "CosineSimilarity",
+            "MeanAbsolutePercentageError"
+        ],
+        "0.5657894736842105": [
+            "LogCosh",
+            "CosineSimilarity"
+        ]
+    },
+    "Adamax": {
+        "0.23684210526315788": [
+            "CategoricalHinge",
+            "FalseNegatives"
+        ],
+        "0.27631578947368424": [
+            "CategoricalHinge",
+            "MeanAbsoluteError"
+        ],
+        "0.2894736842105263": [
+            "CategoricalHinge",
+            "SpecificityAtSensitivity"
+        ],
+        "0.29385964912280704": [
+            "CategoricalHinge",
+            "Accuracy"
+        ],
+        "0.2982456140350877": [
+            "CategoricalHinge",
+            "MeanIoU"
+        ],
+        "0.3026315789473684": [
+            "CategoricalHinge",
+            "CosineSimilarity",
+            "CategoricalHinge",
+            "Poisson"
+        ],
+        "0.30701754385964913": [
+            "CategoricalHinge",
+            "RootMeanSquaredError",
+            "CategoricalHinge",
+            "SensitivityAtSpecificity"
+        ],
+        "0.3157894736842105": [
+            "CategoricalHinge",
+            "CategoricalAccuracy",
+            "CategoricalHinge",
+            "FalsePositives"
+        ],
+        "0.3201754385964912": [
+            "CategoricalHinge",
+            "MeanSquaredLogarithmicError",
+            "CategoricalHinge",
+            "RecallAtPrecision"
+        ],
+        "0.3333333333333333": [
+            "CategoricalHinge",
+            "MeanAbsolutePercentageError",
+            "LogCosh",
+            "RootMeanSquaredError"
+        ],
+        "0.33771929824561403": [
+            "CosineSimilarity",
+            "CosineSimilarity"
+        ],
+        "0.34210526315789475": [
+            "CosineSimilarity",
+            "SquaredHinge"
+        ],
+        "0.34649122807017546": [
+            "CategoricalCrossentropy",
+            "CosineSimilarity",
+            "CategoricalHinge",
+            "LogCoshError",
+            "CategoricalHinge",
+            "PrecisionAtRecall",
+            "CategoricalHinge",
+            "TrueNegatives",
+            "CategoricalHinge",
+            "TruePositives"
+        ],
+        "0.3508771929824561": [
+            "CategoricalCrossentropy",
+            "CategoricalHinge",
+            "CategoricalCrossentropy",
+            "MeanSquaredLogarithmicError",
+            "CategoricalCrossentropy",
+            "Precision",
+            "CategoricalHinge",
+            "TopKCategoricalAccuracy",
+            "LogCosh",
+            "MeanAbsoluteError"
+        ],
+        "0.35526315789473684": [
+            "CategoricalHinge",
+            "Precision",
+            "LogCosh",
+            "SquaredHinge"
+        ],
+        "0.35964912280701755": [
+            "CategoricalCrossentropy",
+            "Recall",
+            "CategoricalCrossentropy",
+            "TrueNegatives",
+            "CategoricalHinge",
+            "CategoricalHinge",
+            "CosineSimilarity",
+            "Poisson",
+            "CosineSimilarity",
+            "RecallAtPrecision",
+            "LogCosh",
+            "TopKCategoricalAccuracy"
+        ],
+        "0.36403508771929827": [
+            "CategoricalCrossentropy",
+            "MeanSquaredError",
+            "CategoricalCrossentropy",
+            "TruePositives",
+            "CategoricalHinge",
+            "SquaredHinge",
+            "LogCosh",
+            "AUC",
+            "LogCosh",
+            "MeanAbsolutePercentageError"
+        ],
+        "0.3684210526315789": [
+            "CategoricalCrossentropy",
+            "MeanAbsoluteError",
+            "CategoricalHinge",
+            "KLDivergence",
+            "CategoricalHinge",
+            "Recall",
+            "CosineSimilarity",
+            "MeanSquaredError",
+            "LogCosh",
+            "Accuracy",
+            "LogCosh",
+            "PrecisionAtRecall"
+        ],
+        "0.37280701754385964": [
+            "CategoricalCrossentropy",
+            "BinaryAccuracy",
+            "CategoricalCrossentropy",
+            "FalsePositives",
+            "CategoricalCrossentropy",
+            "Poisson",
+            "CategoricalCrossentropy",
+            "PrecisionAtRecall",
+            "CategoricalHinge",
+            "AUC",
+            "CategoricalHinge",
+            "BinaryCrossentropy",
+            "CategoricalHinge",
+            "MeanSquaredError",
+            "CosineSimilarity",
+            "TrueNegatives",
+            "LogCosh",
+            "BinaryAccuracy",
+            "LogCosh",
+            "FalsePositives"
+        ],
+        "0.37719298245614036": [
+            "CategoricalCrossentropy",
+            "AUC",
+            "CategoricalCrossentropy",
+            "FalseNegatives",
+            "CategoricalCrossentropy",
+            "MeanAbsolutePercentageError",
+            "CategoricalCrossentropy",
+            "RootMeanSquaredError",
+            "CategoricalCrossentropy",
+            "SpecificityAtSensitivity",
+            "CosineSimilarity",
+            "AUC",
+            "CosineSimilarity",
+            "BinaryCrossentropy",
+            "LogCosh",
+            "Poisson"
+        ],
+        "0.3815789473684211": [
+            "CategoricalCrossentropy",
+            "SensitivityAtSpecificity",
+            "LogCosh",
+            "MeanSquaredLogarithmicError"
+        ],
+        "0.38596491228070173": [
+            "CategoricalCrossentropy",
+            "Accuracy",
+            "CategoricalCrossentropy",
+            "CategoricalCrossentropy",
+            "LogCosh",
+            "Hinge",
+            "LogCosh",
+            "LogCoshError"
+        ],
+        "0.39035087719298245": [
+            "CategoricalHinge",
+            "Hinge",
+            "CosineSimilarity",
+            "MeanAbsoluteError"
+        ],
+        "0.39473684210526316": [
+            "LogCosh",
+            "CategoricalCrossentropy",
+            "LogCosh",
+            "TrueNegatives"
+        ],
+        "0.3991228070175439": [
+            "CategoricalHinge",
+            "BinaryAccuracy",
+            "CosineSimilarity",
+            "Accuracy",
+            "CosineSimilarity",
+            "Hinge",
+            "CosineSimilarity",
+            "MeanSquaredLogarithmicError",
+            "CosineSimilarity",
+            "Recall",
+            "LogCosh",
+            "CategoricalAccuracy",
+            "LogCosh",
+            "FalseNegatives",
+            "LogCosh",
+            "Recall",
+            "LogCosh",
+            "RecallAtPrecision"
+        ],
+        "0.40350877192982454": [
+            "CategoricalCrossentropy",
+            "Hinge",
+            "CategoricalCrossentropy",
+            "MeanIoU",
+            "CategoricalHinge",
+            "CategoricalCrossentropy",
+            "CosineSimilarity",
+            "RootMeanSquaredError",
+            "LogCosh",
+            "KLDivergence"
+        ],
+        "0.40789473684210525": [
+            "CategoricalCrossentropy",
+            "RecallAtPrecision",
+            "LogCosh",
+            "MeanIoU",
+            "LogCosh",
+            "TruePositives"
+        ],
+        "0.41228070175438597": [
+            "CategoricalCrossentropy",
+            "KLDivergence",
+            "CosineSimilarity",
+            "PrecisionAtRecall"
+        ],
+        "0.4166666666666667": [
+            "CategoricalCrossentropy",
+            "TopKCategoricalAccuracy"
+        ],
+        "0.42105263157894735": [
+            "CosineSimilarity",
+            "CategoricalHinge",
+            "LogCosh",
+            "BinaryCrossentropy",
+            "LogCosh",
+            "CosineSimilarity",
+            "LogCosh",
+            "SpecificityAtSensitivity"
+        ],
+        "0.42543859649122806": [
+            "CategoricalCrossentropy",
+            "BinaryCrossentropy",
+            "CosineSimilarity",
+            "FalseNegatives"
+        ],
+        "0.4298245614035088": [
+            "CategoricalCrossentropy",
+            "CategoricalAccuracy",
+            "CategoricalCrossentropy",
+            "SquaredHinge",
+            "CosineSimilarity",
+            "CategoricalAccuracy",
+            "CosineSimilarity",
+            "MeanAbsolutePercentageError",
+            "CosineSimilarity",
+            "Precision"
+        ],
+        "0.4342105263157895": [
+            "CosineSimilarity",
+            "TruePositives",
+            "LogCosh",
+            "CategoricalHinge"
+        ],
+        "0.43859649122807015": [
+            "CategoricalCrossentropy",
+            "LogCoshError",
+            "CosineSimilarity",
+            "KLDivergence",
+            "LogCosh",
+            "MeanSquaredError",
+            "LogCosh",
+            "SensitivityAtSpecificity"
+        ],
+        "0.45614035087719296": [
+            "CosineSimilarity",
+            "SensitivityAtSpecificity"
+        ],
+        "0.4605263157894737": [
+            "CosineSimilarity",
+            "CategoricalCrossentropy"
+        ],
+        "0.47368421052631576": [
+            "CosineSimilarity",
+            "MeanIoU"
+        ],
+        "0.4824561403508772": [
+            "CosineSimilarity",
+            "TopKCategoricalAccuracy"
+        ],
+        "0.4868421052631579": [
+            "LogCosh",
+            "Precision"
+        ],
+        "0.49122807017543857": [
+            "CosineSimilarity",
+            "FalsePositives"
+        ],
+        "0.5043859649122807": [
+            "CosineSimilarity",
+            "LogCoshError"
+        ],
+        "0.5219298245614035": [
+            "CosineSimilarity",
+            "BinaryAccuracy",
+            "CosineSimilarity",
+            "SpecificityAtSensitivity"
+        ]
+    }
+}

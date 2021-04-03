@@ -26,17 +26,30 @@
     --------------------------------------------------------------------------
 """
 
+
+"""
+UI Needs to Move the Robot and the Robot Needs to Change the UI: CIRCULAR
+Sampling Frequency of Laser (currently 0.76; need 0.05)
+UI is NOT asychronous and the program wont run after the UI is called
+"""
+
 # --------------------------------------------------------------------------- #
 
 # Basic Modules
 import sys
+import time
 import numpy as np
 import collections
+import linecache
 
 # Neural Network Modules
 from sklearn.model_selection import train_test_split
 
-# Imort Helper Files
+# Import GUI Template
+sys.path.append('./Helper Files/GUI Design/')  # Folder with GUI Files
+import GUI as GUI   # Function with GUI and Finger Movements
+
+# Imort Robotic Control Files
 sys.path.append('./Helper Files/Robotic Control/')  # Folder with All the Helper Files
 import moveRobot as robotControl              # Functions to Control Robot Movement
 
@@ -58,14 +71,15 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------- #
 
     # General Data Collection Information (You Will Likely Not Edit These)
-    arduinoSerialNum = '85735313333351E040A0'  # Arduino's Serial Number (port.serial_number)
-    numDataPoints = 80000  # The Number of Points to Stream into the Arduino
+    emgSerialNum = '85735313333351E040A0'  # Arduino's Serial Number (port.serial_number)
+    handSerialNum = '7593231313935131D162'     # Hand's Serial Number (port.serial_number)
+    numDataPoints = 20000  # The Number of Points to Stream into the Arduino
     moveDataFinger = 200   # The Number of Data Points to Plot/Analyze at a Time
     numChannels = 4        # The Number of Arduino Channels with EMG Signals Read in
     xWidth = 2000          # The Number of Data Points to Display to the User at a Time
     
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
-    streamArduinoData = False  # Stream in Data from the Arduino and Analyze
+    streamArduinoData = True  # Stream in Data from the Arduino and Analyze
     trainModel = False         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
     
     # User Option During the Run
@@ -102,8 +116,27 @@ if __name__ == "__main__":
     #                EMG Program (Should Not Have to Edit)                   #
     # ---------------------------------------------------------------------- #
     
+    # Start GUI
+    app = GUI.QtWidgets.QApplication(sys.argv)
+    # Create GUI
+    MainWindow = GUI.QtWidgets.QMainWindow()
+    centralwidget = GUI.QtWidgets.QWidget(MainWindow)
+    Number_distance = GUI.QtWidgets.QLabel(centralwidget)
+    # Set Up Arms
+    arm_1 = GUI.QtWidgets.QTextEdit(centralwidget)
+    arm_2 = GUI.QtWidgets.QTextEdit(centralwidget)
+    arm_3 = GUI.QtWidgets.QTextEdit(centralwidget)
+    arm_4 = GUI.QtWidgets.QTextEdit(centralwidget)
+    arm_5 = GUI.QtWidgets.QTextEdit(centralwidget)
+    
+    # Initiate the GUI and Setup Params
+    ui = GUI.Ui_MainWindow(MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5, initiate=True)
+    app.exec_()
+
     # Initiate the Robot
-    RoboArm = robotControl.initiateRobot()
+    RoboArm = robotControl.initiateRobot(MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5)
     RoboArm.checkConnection()
     try:
         # Setup the Robot's Parameters
@@ -111,13 +144,17 @@ if __name__ == "__main__":
         RoboArm.setRest()       # Sets the Rest Position to Current Start Position
         
         # Initate Robot for Movement and Place in Beginning Position
-        Controller = robotControl.moveRobot()
-        Controller.powerUp('fancy') # If mode = 'fancy', begin there. Then go to Home Position
+        armController = robotControl.moveRobot(MainWindow, centralwidget, Number_distance, 
+                       arm_1, arm_2, arm_3, arm_4, arm_5)
+        armController.powerUp('fancy') # If mode = 'fancy', begin there. Then go to Home Position
+        
+        
         
         # Begin Data Collection and Analysis (Move Robot During Movements)
         if streamArduinoData:
-            readData = streamData.arduinoRead(xWidth, moveDataFinger, numChannels, movementOptions)
-            readData.streamArduinoData(numDataPoints, arduinoSerialNum, seeFullPlot, myModel = MLModel, Controller = Controller)
+            # Read Arduino for the Gestures
+            readData = streamData.arduinoRead(ui, xWidth, moveDataFinger, numChannels, movementOptions)
+            readData.streamArduinoData(numDataPoints, emgSerialNum, handSerialNum, RoboArm, seeFullPlot, myModel = MLModel, Controller = armController)
         elif trainModel:
             readData = excelData.readExcel(xWidth, moveDataFinger, numChannels, movementOptions)
             signalData, signalLabels = readData.getTrainingData(trainDataExcelFolder, movementOptions, mode='Train')
@@ -146,15 +183,28 @@ if __name__ == "__main__":
         if saveInputData:
             saveInputs = excelData.saveExcel(numChannels)
             saveInputs.saveData(readData.data, readData.xTopGrouping, readData.featureSetGrouping, saveDataFolder, saveExcelName, sheetName, handMovement)
-        
-
-        
+            
+        # Close the GUI
+        #sys.exit(app.exec_())
+        # Power Down Robot
+        RoboArm.powerDown()
     # If Something Goes Wrong, Power Down Robot (Controlled)
-    except:
+    except Exception as e:
+        exc_type, exc_obj, tb = sys.exc_info()
+        f = tb.tb_frame
+        lineno = tb.tb_lineno
+        filename = f.f_code.co_filename
+        linecache.checkcache(filename)
+        line = linecache.getline(filename, lineno, f.f_globals)
+        print('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj))
+        print(e)
+        time.sleep(5)    
+        # Turn Off Robot
         RoboArm.powerDown()
     
-    # Power Down Robot
-    RoboArm.powerDown()
+    
+    
     
     # ---------------------------------------------------------------------- #
     # ---------------------------------------------------------------------- #
+    
