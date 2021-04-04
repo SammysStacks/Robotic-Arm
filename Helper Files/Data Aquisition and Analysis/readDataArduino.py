@@ -10,23 +10,21 @@ Created on Tue Mar  2 13:44:26 2021
 import serial
 import serial.tools.list_ports
 # General Modules
-import threading
 import time
 import sys
 import re
+import threading
 
 from peakAnalysis import globalParam
-sys.path.append('../GUI Design/')
-from GUI import Ui_MainWindow
 
 
 # --------------------------------------------------------------------------- #
 # ----------------- Stream Data from Arduino Can Edit ----------------------- #
 
 class arduinoRead(globalParam):
-    def __init__(self, guiWindow, xWidth = 2000, moveDataFinger = 200, numChannels = 4, movementOptions = []):
+    def __init__(self, xWidth = 2000, moveDataFinger = 200, numChannels = 4, movementOptions = [], guiApp = None):
         # Get Variables from Peak Analysis File
-        super().__init__(guiWindow, xWidth, moveDataFinger, numChannels, movementOptions)
+        super().__init__(xWidth, moveDataFinger, numChannels, movementOptions)
 
         # Set up Connection to Arduino
         self.HANDSHAKE = 0
@@ -35,14 +33,17 @@ class arduinoRead(globalParam):
         self.STREAM = 3;
         self.READ_DAQ_DELAY = 4;
         
+        # Copy of the UI Window
+        self.guiApp = guiApp
+        
         # Variables for Hand Arduino's DistanceRead Funcion
         self.speed_x = 1 # speed_x = 1 when the arm is in fast mode, otherwise, speed_x = 0
-        self.stop_x = 0 # stop_x = 1 when robot hand is stopped by the pressure sensor
+        self.stop_x = 0  # stop_x = 1 when robot hand is stopped by the pressure sensor
         self.distance_slow = 120 # robot arm will slow down if the distance is less than this number,
         self.speed_slow = 0.02 # speed of arm in slow mode
-        self.speed_fast = 0.15# speed of arm in fast mode
+        self.speed_fast = 0.15 # speed of arm in fast mode
         self.STOP = 9999 # when hand touch something, int(9999) will be sent to computer
-        self.MOVE = 8888# when hand does not touch anything, int(8888) will be sent to computer
+        self.MOVE = 8888 # when hand does not touch anything, int(8888) will be sent to computer
         
     
     def find_arduino(self, serialNum = 'NA'):
@@ -195,7 +196,7 @@ class arduinoRead(globalParam):
         else:
             return time_ms, channelList[0], channelList[1], channelList[2], channelList[3], b'' #raw_list[-1].encode()
     
-    def streamArduinoData(self, n_data, emgSerialNum, handSerialNum, RoboArm, seeFullPlot, myModel = None, Controller=None, n_trash_reads=500, n_reads_per_chunk=400, delay=100):
+    def streamArduinoData(self, n_data, emgSerialNum, handSerialNum, seeFullPlot, myModel = None, Controller=None, n_trash_reads=500, n_reads_per_chunk=400, delay=100):
         """Obtain `n_data` data points from an Arduino stream
         with a delay of `delay` milliseconds between each."""
         print("Streaming in Data from the Arduino")
@@ -205,6 +206,8 @@ class arduinoRead(globalParam):
             handPort = self.find_arduino(serialNum = handSerialNum)
             handArduino = serial.Serial(handPort, baudrate=115200, timeout=1)
             _ = handArduino.read_all()
+            if self.guiApp:
+                self.guiApp.handPort = handPort
         except Exception as e:
                 print("No Hand Port Found: ", e)
                 sys.exit()
@@ -226,15 +229,18 @@ class arduinoRead(globalParam):
         # Read and throw out first few reads
         for i in range(n_trash_reads):
             _ = arduino.read_until()
+        
+        # Set Up Laser Reading
+        l_time = 0
+        l_time = self.distanceRead(l_time, handArduino, Controller)
+        #threading.Thread(target = self.app.exec_(), args = (l_time,), daemon=True).start()
     
         # Receive data
         read_buffer = b""
         dataFinger = 0
-        l_time = 0
         while len(self.data["time_ms"]) < n_data:
             # Read in chunk of data
             raw = self.read_all_newlines(arduino, read_buffer=read_buffer, n_reads=n_reads_per_chunk)
-            l_time = self.distanceRead(l_time, handArduino, RoboArm)
             
             # Parse it, passing if it is gibberish
             try:
@@ -252,7 +258,6 @@ class arduinoRead(globalParam):
                 # When Ready, Send Data Off for Analysis
                 pointNum = len(self.data["time_ms"])
                 while pointNum - dataFinger >= self.xWidth:
-                    l_time = self.distanceRead(l_time, handArduino, RoboArm)
                     self.live_plotter(dataFinger, seeFullPlot, myModel = myModel, Controller = Controller)
                     dataFinger += self.moveDataFinger
             except Exception as e:
@@ -265,6 +270,8 @@ class arduinoRead(globalParam):
         arduino.close()
         handArduino.write(str.encode('s0')) # turn off the laser
         handArduino.close()
+        if self.guiApp:
+            self.guiApp.handPort = None
         
     
     def distanceRead(self, l_time, handArduino, RoboArm):
@@ -273,7 +280,7 @@ class arduinoRead(globalParam):
             d_laser = handArduino.read_until()
             distance = d_laser.decode()
 
-            self.guiWindow.Number_distance.setText(self.guiWindow.translate("MainWindow", str(distance)))
+            self.guiApp.Number_distance.setText(self.guiApp.translate("MainWindow", str(distance)))
             distance = int(distance)
             l_time = l_time + 100
             if distance < self.distance_slow and self.speed_x == 1:
@@ -292,4 +299,6 @@ class arduinoRead(globalParam):
                 self.stop_x =0
         
         return l_time 
+ 
+    
  

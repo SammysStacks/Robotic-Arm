@@ -25,9 +25,7 @@ import matplotlib.pyplot as plt
 
 class globalParam:
     
-    def __init__(self, guiWindow, xWidth = 2000, moveDataFinger = 200, numChannels = 4, movementOptions = []):
-        # Initiate GUI
-        self.guiWindow = guiWindow
+    def __init__(self, xWidth = 2000, moveDataFinger = 200, numChannels = 4, movementOptions = []):
         
         # Input Parameters
         self.numChannels = numChannels        # Number of EMG Signals
@@ -455,11 +453,9 @@ class globalParam:
             elif predictedLabel == "up":
                 Controller.moveUp()
             elif predictedLabel == "grab":
-                # fingerText[fingerIndex - 1].setText(fingerPos)
-                print("Grabbing")
+                Controller.grab()
             elif predictedLabel == "release":
-                # fingerText[fingerIndex - 1].setText(fingerPos)
-                print("Releasing")
+                Controller.release()
 
 
 

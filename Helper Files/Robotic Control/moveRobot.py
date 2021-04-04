@@ -4,19 +4,12 @@ import sys
 import functools
 # Import innfosControlFunctions.py (Must be in Same Folder!)
 import innfosControlFunctions as innfos
-# Import UI
-sys.path.append('../GUI Design/')
-from GUI import Ui_MainWindow
 
 # --------------------------------------------------------------------------- #
 # --------------------------- User Can Edit --------------------------------- #
 
-class initiateRobot(Ui_MainWindow):
-    def __init__(self, MainWindow, centralwidget, Number_distance, 
-                       arm_1, arm_2, arm_3, arm_4, arm_5):
-        super().__init__(MainWindow, centralwidget, Number_distance, 
-                       arm_1, arm_2, arm_3, arm_4, arm_5)
-        
+class initiateRobotArm():
+    def __init__(self):        
         # Label Actuators
         self.actuID = [0x01, 0x02, 0x03, 0x04, 0x05]
         
@@ -186,12 +179,11 @@ class initiateRobot(Ui_MainWindow):
         innfos.trapposset(self.actuID, self.accel, self.maxSpeed, self.decel)                
 
 
-class moveRobot(initiateRobot):
+class moveArm(initiateRobotArm):
     
-    def __init__(self, MainWindow, centralwidget, Number_distance, 
-                       arm_1, arm_2, arm_3, arm_4, arm_5):
-        super().__init__(MainWindow, centralwidget, Number_distance, 
-                       arm_1, arm_2, arm_3, arm_4, arm_5)
+    def __init__(self):
+        #super(type(self), self).__init__()
+        super().__init__()
     
     def homePos(self):
         # Start at Home
@@ -260,19 +252,16 @@ class moveRobot(initiateRobot):
         innfos.setpos(self.actuID, currentPos)
         
 
-class moveHand(initiateRobot):
-    def __init__(self, handPort, MainWindow, centralwidget, Number_distance, 
-                       arm_1, arm_2, arm_3, arm_4, arm_5):
-        super().__init__(MainWindow, centralwidget, Number_distance, 
-                       arm_1, arm_2, arm_3, arm_4, arm_5)
+class moveHand():
+    def __init__(self, handPort):
         # Hand Port
         self.handPort = handPort
     
     def Grab(self):
-        return 1
+        print("Grabbing")
     
     def Release(self):
-        return 1
+        print("Releasing")
     
     def moveFinger(self, pos, com_f = 'h1', speed = 1):
         if int(speed) > 5:
@@ -290,25 +279,34 @@ class moveHand(initiateRobot):
         self.handPort.write(str.encode(com))
         # Update UI
         #self.updateUIText(int(com_f[-1]), pos)
-        
+
+class robotControl(moveArm, moveHand):
     
-    def updateUIText(self, fingerIndex, fingerPos):
-         self.fingerText[fingerIndex - 1].setText(fingerPos)
+    def __init__(self, handPort = None, guiApp = None):
+        # Initiate Parent Classes
+        moveHand.__init__(self, handPort)
+        moveArm.__init__(self)
+        
+        # UI Class
+        self.guiApp = guiApp
+    
+    def updateFingerText(self, fingerIndex, fingerPos):
+         self.guiApp.fingerText[fingerIndex - 1].setText(fingerPos)
 
 # --------------------------------------------------------------------------- #
 # ------------------------- Defined Program --------------------------------- #
 
 if __name__ == "__main__":
     # Initiate the Robot
-    RoboArm = initiateRobot()
-    RoboArm.checkConnection()
+    robotControl = robotControl()
+    robotControl.checkConnection()
     try:
         # Setup the Robot's Parameters
-        RoboArm.setRoboParams() # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
-        RoboArm.setRest()       # Sets the Rest Position to Current Start Position
+        robotControl.setRoboParams() # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
+        robotControl.setRest()       # Sets the Rest Position to Current Start Position
         
         # Initate Robot for Movement and Place in Beginning Position
-        Controller = moveRobot()
+        Controller = moveArm()
         Controller.powerUp('fancy') # If mode = 'fancy', begin there. Then go to Home Position
         
         # User Defined Movements
@@ -319,8 +317,8 @@ if __name__ == "__main__":
         
     # If Something Goes Wrong, Power Down Robot (Controlled)
     except:
-        RoboArm.powerDown()
+        robotControl.powerDown()
     
     # Power Down Robot
-    RoboArm.powerDown()
+    robotControl.powerDown()
     

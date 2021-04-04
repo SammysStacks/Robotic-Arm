@@ -1,5 +1,5 @@
 """
-    Written by Samuel Solomon
+    Written by Samuel Solomon and Jiahong Li
     
     --------------------------------------------------------------------------
     Data Aquisition:
@@ -51,7 +51,7 @@ import GUI as GUI   # Function with GUI and Finger Movements
 
 # Imort Robotic Control Files
 sys.path.append('./Helper Files/Robotic Control/')  # Folder with All the Helper Files
-import moveRobot as robotControl              # Functions to Control Robot Movement
+import moveRobot as robotController              # Functions to Control Robot Movement
 
 # Import Data Aquisition and Analysis Files
 sys.path.append('./Helper Files/Data Aquisition and Analysis/')  # Folder with Data Aquisition Files
@@ -64,19 +64,18 @@ import KNN as KNN   # Functions for K-Nearest Neighbors' Algorithm
 
 # --------------------------------------------------------------------------- #
 
-
 if __name__ == "__main__":
     # ---------------------------------------------------------------------- #
     #    User Parameters to Edit (More Complex Edits are Inside the Files)   #
     # ---------------------------------------------------------------------- #
 
     # General Data Collection Information (You Will Likely Not Edit These)
-    emgSerialNum = '85735313333351E040A0'  # Arduino's Serial Number (port.serial_number)
-    handSerialNum = '7593231313935131D162'     # Hand's Serial Number (port.serial_number)
-    numDataPoints = 20000  # The Number of Points to Stream into the Arduino
-    moveDataFinger = 200   # The Number of Data Points to Plot/Analyze at a Time
-    numChannels = 4        # The Number of Arduino Channels with EMG Signals Read in
-    xWidth = 2000          # The Number of Data Points to Display to the User at a Time
+    handSerialNum = '7593231313935131D162'  # Hand Arduino's Serial Number (port.serial_number)
+    emgSerialNum = '85735313333351E040A0'   # EMG Arduino's Serial Number (port.serial_number)
+    numDataPoints = 20000  # The Number of Points to Stream into the EMG Arduino
+    moveDataFinger = 200   # The Number of Data Points to Analyze at a Time
+    numChannels = 4        # The Number of EMG Arduino Channels with EMG Signals Read
+    xWidth = 2000          # The Number of Data Points to Display to the User (Plot) at a Time
     
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
     streamArduinoData = True  # Stream in Data from the Arduino and Analyze
@@ -116,45 +115,26 @@ if __name__ == "__main__":
     #                EMG Program (Should Not Have to Edit)                   #
     # ---------------------------------------------------------------------- #
     
-    # Start GUI
-    app = GUI.QtWidgets.QApplication(sys.argv)
-    # Create GUI
-    MainWindow = GUI.QtWidgets.QMainWindow()
-    centralwidget = GUI.QtWidgets.QWidget(MainWindow)
-    Number_distance = GUI.QtWidgets.QLabel(centralwidget)
-    # Set Up Arms
-    arm_1 = GUI.QtWidgets.QTextEdit(centralwidget)
-    arm_2 = GUI.QtWidgets.QTextEdit(centralwidget)
-    arm_3 = GUI.QtWidgets.QTextEdit(centralwidget)
-    arm_4 = GUI.QtWidgets.QTextEdit(centralwidget)
-    arm_5 = GUI.QtWidgets.QTextEdit(centralwidget)
-    
-    # Initiate the GUI and Setup Params
-    ui = GUI.Ui_MainWindow(MainWindow, centralwidget, Number_distance, 
-                       arm_1, arm_2, arm_3, arm_4, arm_5, initiate=True)
-    app.exec_()
+    # Initiate the UI
+    guiApp = GUI.Ui_MainWindow(handPort = None)
+    print("Made UI")
 
-    # Initiate the Robot
-    RoboArm = robotControl.initiateRobot(MainWindow, centralwidget, Number_distance, 
-                       arm_1, arm_2, arm_3, arm_4, arm_5)
-    RoboArm.checkConnection()
+    # Initiate the Robot Control
+    robotControl = robotController.robotControl(guiApp)
+    robotControl.checkConnection()
     try:
         # Setup the Robot's Parameters
-        RoboArm.setRoboParams() # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
-        RoboArm.setRest()       # Sets the Rest Position to Current Start Position
+        robotControl.setRoboParams() # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
+        robotControl.setRest()       # Sets the Rest Position to Current Start Position
         
         # Initate Robot for Movement and Place in Beginning Position
-        armController = robotControl.moveRobot(MainWindow, centralwidget, Number_distance, 
-                       arm_1, arm_2, arm_3, arm_4, arm_5)
-        armController.powerUp('fancy') # If mode = 'fancy', begin there. Then go to Home Position
-        
-        
+        robotControl.powerUp('fancy') # If mode = 'fancy', begin there. Then go to Home Position
         
         # Begin Data Collection and Analysis (Move Robot During Movements)
         if streamArduinoData:
             # Read Arduino for the Gestures
-            readData = streamData.arduinoRead(ui, xWidth, moveDataFinger, numChannels, movementOptions)
-            readData.streamArduinoData(numDataPoints, emgSerialNum, handSerialNum, RoboArm, seeFullPlot, myModel = MLModel, Controller = armController)
+            readData = streamData.arduinoRead(xWidth, moveDataFinger, numChannels, movementOptions, guiApp)
+            readData.streamArduinoData(numDataPoints, emgSerialNum, handSerialNum, seeFullPlot, myModel = MLModel, Controller = robotControl)
         elif trainModel:
             readData = excelData.readExcel(xWidth, moveDataFinger, numChannels, movementOptions)
             signalData, signalLabels = readData.getTrainingData(trainDataExcelFolder, movementOptions, mode='Train')
@@ -187,7 +167,7 @@ if __name__ == "__main__":
         # Close the GUI
         #sys.exit(app.exec_())
         # Power Down Robot
-        RoboArm.powerDown()
+        robotControl.powerDown()
     # If Something Goes Wrong, Power Down Robot (Controlled)
     except Exception as e:
         exc_type, exc_obj, tb = sys.exc_info()
@@ -200,7 +180,7 @@ if __name__ == "__main__":
         print(e)
         time.sleep(5)    
         # Turn Off Robot
-        RoboArm.powerDown()
+        robotControl.powerDown()
     
     
     
