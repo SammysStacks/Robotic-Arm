@@ -15,6 +15,7 @@
     --------------------------------------------------------------------------
     
     Modules to Import Before Running the Program (Some May be Missing):
+        $ conda install -c conda-forge ffmpeg
         $ conda install matplotlib
         $ conda install tensorflow
         $ conda install openpyxl
@@ -76,7 +77,7 @@ if __name__ == "__main__":
     numDataPoints = 20000  # The Number of Points to Stream into the EMG Arduino
     moveDataFinger = 200   # The Number of Data Points to Analyze at a Time
     numChannels = 4        # The Number of EMG Arduino Channels with EMG Signals Read
-    xWidth = 2000          # The Number of Data Points to Display to the User (Plot) at a Time
+    xWidth = 1000          # The Number of Data Points to Display to the User (Plot) at a Time
     
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
     streamArduinoData = True  # Stream in Data from the Arduino and Analyze
@@ -90,7 +91,7 @@ if __name__ == "__main__":
     # Take Data from the Arduino and Save it as an Excel (For Later Use)
     if saveInputData:
         saveExcelName = "Samuel Solomon 2021-03-18.xlsx"  # The Name of the Saved File
-        saveDataFolder = "./Input Data/Training Data/"   # Data Folder to Save the Excel Data; MUST END IN '/'
+        saveDataFolder = "./Input Data/Full Training Data/"   # Data Folder to Save the Excel Data; MUST END IN '/'
         handMovement = "Release"                          # Speficy the hand Movement You Will Perform
         
         sheetName = "Trial 1 - "  # If SheetName Already Exists, Excel 1 to Trial #
@@ -106,12 +107,11 @@ if __name__ == "__main__":
         sys.exit()
         
     # Specify the ML Module
-    modelPath = "./Helper Files/Machine Learning Modules/Models/myModel.pkl"
+    modelPath = "./Helper Files/Machine Learning Modules/Models/myModelKNNFull.pkl"
     MLModel = KNN.KNN(modelPath = modelPath, numClasses = len(movementOptions))    
     
-    trainDataExcelFolder = "./Input Data/Training Data/"  # Path to the Training Data Folder; All .xlsx Data Used
+    trainDataExcelFolder = "./Input Data/Full Training Data/"  # Path to the Training Data Folder; All .xlsx Data Used
 
-    
     # ---------------------------------------------------------------------- #
     #                EMG Program (Should Not Have to Edit)                   #
     # ---------------------------------------------------------------------- #
@@ -121,7 +121,7 @@ if __name__ == "__main__":
         # Begin Data Collection and Analysis (Move Robot During Movements)
         if streamArduinoData:
             # Initiate the UI
-            guiApp = GUI.Ui_MainWindow(handPort = None)
+            guiApp = GUI.Ui_MainWindow(handArduino = None)
         
             # Initiate the Robotic Control
             robotControl = robotController.robotControl(guiApp)
@@ -133,9 +133,8 @@ if __name__ == "__main__":
             robotControl.powerUp('fancy') # If mode = 'fancy', begin there. Then go to Home Position
     
             # Stream in EMG Arduino Data and Perform Gesture Recognition
-            readData = streamData.arduinoRead(xWidth, moveDataFinger, numChannels, movementOptions, guiApp)
-            threading.Thread(target = readData.streamArduinoData, args = (numDataPoints, emgSerialNum, handSerialNum, seeFullPlot, MLModel, robotControl), daemon=True).start()
-            # readData.streamArduinoData(numDataPoints, emgSerialNum, handSerialNum, seeFullPlot, myModel = MLModel, Controller = robotControl)
+            readData = streamData.arduinoRead(emgSerialNum, handSerialNum, xWidth, moveDataFinger, numChannels, movementOptions, guiApp)
+            threading.Thread(target = readData.streamArduinoData, args = (numDataPoints, seeFullPlot, MLModel, robotControl), daemon=True).start()
             
             # Start UI Popup
             guiApp.app.exec_()
@@ -161,7 +160,7 @@ if __name__ == "__main__":
             # Train the Classifier (the Model) with the Training Data
             MLModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels)
             # Plot the Training Loss    
-            MLModel.plotModel(signalData, signalLabelsClass)
+            #MLModel.plotModel(signalData, signalLabelsClass)
             
             # Find the Class Data Distribution in the Total Training/Testing Set
             classDistribution = collections.Counter(signalLabelsClass)

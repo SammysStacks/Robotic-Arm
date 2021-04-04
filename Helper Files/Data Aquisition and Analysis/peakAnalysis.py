@@ -214,7 +214,6 @@ class globalParam:
             self.currentGroupNum = max(self.xTopGrouping[dataChannel].keys(), default=0)
             currentHighestXPeak = max([max(self.xTopGrouping[i][self.currentGroupNum], default=0) for i in range(self.numChannels)])
             if abs(xDataRMS[-1] - currentHighestXPeak) > self.maxPeakSep and currentHighestXPeak != 0:
-                print("Waited Peak")
                 self.createNewGroup(myModel, Controller)
             # Plot RMS Data
             self.movieGraphChannelListFiltered[dataChannel].set_data(xDataRMS, RMSData[-self.xWidthPeaks:])
@@ -435,7 +434,7 @@ class globalParam:
             channelFeature = self.featureSetGrouping[channel][self.currentGroupNum]
             groupFeatures.append((channelFeature or [0])[0])
         inputData = np.array([groupFeatures])
-        if len(inputData[inputData > 0]):
+        if len(inputData[inputData > 0]) <= 1:
             print("Only One Signal Found; Not Moving Robot")
             return None
         
@@ -453,9 +452,9 @@ class globalParam:
             elif predictedLabel == "up":
                 Controller.moveUp()
             elif predictedLabel == "grab":
-                Controller.grab()
+                Controller.grabHand()
             elif predictedLabel == "release":
-                Controller.release()
+                Controller.releaseHand()
 
 
 

@@ -22,7 +22,7 @@ from peakAnalysis import globalParam
 # ----------------- Stream Data from Arduino Can Edit ----------------------- #
 
 class arduinoRead(globalParam):
-    def __init__(self, xWidth = 2000, moveDataFinger = 200, numChannels = 4, movementOptions = [], guiApp = None):
+    def __init__(self, emgSerialNum, handSerialNum, xWidth = 2000, moveDataFinger = 200, numChannels = 4, movementOptions = [], guiApp = None):
         # Get Variables from Peak Analysis File
         super().__init__(xWidth, moveDataFinger, numChannels, movementOptions)
 
@@ -44,7 +44,31 @@ class arduinoRead(globalParam):
         self.speed_fast = 0.15 # speed of arm in fast mode
         self.STOP = 9999 # when hand touch something, int(9999) will be sent to computer
         self.MOVE = 8888 # when hand does not touch anything, int(8888) will be sent to computer
+     
+        # Initiate Arduinos
+        self.emgArduino, self.handArduino = self.initiateArduino(emgSerialNum, handSerialNum)
+            
+    def initiateArduino(self, emgSerialNum, handSerialNum):
+        # Initiate Hand Arduino
+        try:
+            handPort = self.find_arduino(serialNum = handSerialNum)
+            handArduino = serial.Serial(handPort, baudrate=115200, timeout=1)
+            if self.guiApp:
+                self.guiApp.handArduino = handArduino
+                self.guiApp.initiateRoboticMovement()
+        except Exception as e:
+                print("No Hand Port Found: ", e)
+                sys.exit()
         
+        # Find EMG Arduino Port. If None: print Error
+        try:
+            port = self.find_arduino(serialNum = emgSerialNum)
+            emgArduino = serial.Serial(port, baudrate=115200)
+        except Exception as e:
+                print("No EMG Arduino Port Found: ", e)
+                sys.exit() 
+        
+        return emgArduino, handArduino
     
     def find_arduino(self, serialNum = 'NA'):
         """Get the name of the port that is connected to Arduino."""
@@ -196,43 +220,25 @@ class arduinoRead(globalParam):
         else:
             return time_ms, channelList[0], channelList[1], channelList[2], channelList[3], b'' #raw_list[-1].encode()
     
-    def streamArduinoData(self, n_data, emgSerialNum, handSerialNum, seeFullPlot, myModel = None, Controller=None, n_trash_reads=500, n_reads_per_chunk=400, delay=100):
+    def streamArduinoData(self, n_data, seeFullPlot, myModel = None, Controller=None, n_trash_reads=500, n_reads_per_chunk=400, delay=100):
         """Obtain `n_data` data points from an Arduino stream
         with a delay of `delay` milliseconds between each."""
         print("Streaming in Data from the Arduino")
         
-        # Initiate Hand Arduino
-        try:
-            handPort = self.find_arduino(serialNum = handSerialNum)
-            handArduino = serial.Serial(handPort, baudrate=115200, timeout=1)
-            _ = handArduino.read_all()
-            if self.guiApp:
-                self.guiApp.handPort = handPort
-        except Exception as e:
-                print("No Hand Port Found: ", e)
-                sys.exit()
-        
-        # Find EMG Arduino Port. If None: print Error
-        try:
-            port = self.find_arduino(serialNum = emgSerialNum)
-            arduino = serial.Serial(port, baudrate=115200)
-        except Exception as e:
-                print("No EMG Arduino Port Found: ", e)
-                sys.exit()    
-        
         # Specify delay
-        arduino.write(bytes([self.READ_DAQ_DELAY]) + (str(delay) + "x").encode())
+        self.emgArduino.write(bytes([self.READ_DAQ_DELAY]) + (str(delay) + "x").encode())
         
         # Turn on the stream
-        arduino.write(bytes([self.STREAM]))
+        self.emgArduino.write(bytes([self.STREAM]))
     
         # Read and throw out first few reads
         for i in range(n_trash_reads):
-            _ = arduino.read_until()
+            _ = self.emgArduino.read_until()
+        _ = self.handArduino.read_all()
         
         # Set Up Laser Reading
         l_time = 0
-        l_time = self.distanceRead(l_time, handArduino, Controller)
+        l_time = self.distanceRead(l_time, self.handArduino, Controller)
         #threading.Thread(target = self.app.exec_(), args = (l_time,), daemon=True).start()
     
         # Receive data
@@ -240,7 +246,7 @@ class arduinoRead(globalParam):
         dataFinger = 0
         while len(self.data["time_ms"]) < n_data:
             # Read in chunk of data
-            raw = self.read_all_newlines(arduino, read_buffer=read_buffer, n_reads=n_reads_per_chunk)
+            raw = self.read_all_newlines(self.emgArduino, read_buffer=read_buffer, n_reads=n_reads_per_chunk)
             
             # Parse it, passing if it is gibberish
             try:
@@ -267,11 +273,12 @@ class arduinoRead(globalParam):
             
             
         # Close the Arduino at the End
-        arduino.close()
-        handArduino.write(str.encode('s0')) # turn off the laser
-        handArduino.close()
+        print("Finished Streaming in Data; Closing Arduino")
+        self.emgArduino.close()
+        self.handArduino.write(str.encode('s0')) # turn off the laser
+        self.handArduino.close()
         if self.guiApp:
-            self.guiApp.handPort = None
+            self.guiApp.handArduino = None
         
     
     def distanceRead(self, l_time, handArduino, RoboArm):

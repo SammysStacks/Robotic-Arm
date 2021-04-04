@@ -14,7 +14,7 @@ import moveRobot as robotController              # Functions to Control Robot Mo
 # --------------------------------------------------------------------------- #
 
 class Ui_MainWindow():
-    def __init__(self, handPort = None, numFingers = 5, numActuators = 5):
+    def __init__(self, handArduino = None, numFingers = 5, numActuators = 5):
         # Start GUI
         self.app = QtWidgets.QApplication(sys.argv)
         
@@ -25,13 +25,11 @@ class Ui_MainWindow():
         self.f = 4 # f=0 for 2k screen, f=4 for 1080 screen
         
         # Robot Parameters
+        self.robotControl = None
         self.numFingers = numFingers
         self.numActuators = numActuators
-        self.handPort = None
-        
-        # Initiate Robot Class
-        self.robotControl = robotController.robotControl(handPort = handPort, guiApp = None)
-        
+        self.handArduino = None
+    
         # Create UI
         self.MainWindow = QtWidgets.QMainWindow()
         self.translate = QtCore.QCoreApplication.translate
@@ -41,6 +39,11 @@ class Ui_MainWindow():
         # Setup and Display UI
         self.setupUi()
         self.MainWindow.show()
+    
+    def initiateRoboticMovement(self):
+        # Initiate Robot Class
+        self.robotControl = robotController.robotControl(handArduino = self.handArduino, guiApp = None)
+        
         
     def setupUi(self):
         self.MainWindow.setObjectName("MainWindow")
@@ -278,12 +281,12 @@ class Ui_MainWindow():
         self.robotControl.moveTo(pos)
         
     def click_Laser_On(self):
-        if self.handPort:
-            self.handPort.write(str.encode('s1'))
+        if self.handArduino:
+            self.handArduino.write(str.encode('s1'))
         
     def click_Laser_Off(self):
-        if self.handPort:
-            self.handPort.write(str.encode('s0'))
+        if self.handArduino:
+            self.handArduino.write(str.encode('s0'))
 
   
     def retranslateUi(self):

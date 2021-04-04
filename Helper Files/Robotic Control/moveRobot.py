@@ -51,9 +51,7 @@ class initiateRobotArm():
             self.RestPos = pos
         else:
             currentPos = self.getCurrentPos()
-            print(currentPos)
             self.RestPos = currentPos.copy()
-            print(self.RestPos)
     
     def isMoving(self):
         initalPos = self.getCurrentPos()
@@ -63,9 +61,9 @@ class initiateRobotArm():
         else: 
             return True
     
-    def waitUntilStoped(self):
+    def waitUntilStoped(self, waitTime = 0.5):
         while self.isMoving():
-            time.sleep(0.5)
+            time.sleep(waitTime)
             
     def powerUp(self, mode):
         print("Powering On")
@@ -78,9 +76,8 @@ class initiateRobotArm():
     def powerDown(self):
         print("Powering Off")
         self.waitUntilStoped()
-        print(self.RestPos)
         innfos.setpos(self.actuID, self.RestPos)
-        self.waitUntilStoped()
+        self.waitUntilStoped(1)
         innfos.disableact(self.actuID)
     
     def checkConnection(self):
@@ -253,14 +250,14 @@ class moveArm(initiateRobotArm):
         
 
 class moveHand():
-    def __init__(self, handPort):
+    def __init__(self, handArduino):
         # Hand Port
-        self.handPort = handPort
+        self.handArduino = handArduino
     
-    def Grab(self):
+    def grabHand(self):
         print("Grabbing")
     
-    def Release(self):
+    def releaseHand(self):
         print("Releasing")
     
     def moveFinger(self, pos, com_f = 'h1', speed = 1):
@@ -276,15 +273,15 @@ class moveHand():
             pos = str(pos)
         com = com_f + str(pos) + str(speed)
         # Move the Finger
-        self.handPort.write(str.encode(com))
+        self.handArduino.write(str.encode(com))
         # Update UI
         #self.updateUIText(int(com_f[-1]), pos)
 
 class robotControl(moveArm, moveHand):
     
-    def __init__(self, handPort = None, guiApp = None):
+    def __init__(self, handArduino = None, guiApp = None):
         # Initiate Parent Classes
-        moveHand.__init__(self, handPort)
+        moveHand.__init__(self, handArduino)
         moveArm.__init__(self)
         
         # UI Class
