@@ -41,9 +41,6 @@ class Ui_MainWindow():
         # Setup and Display UI
         self.setupUi()
         self.MainWindow.show()
-        print(1)
-        threading.Thread(target = self.app.exec_(), args = (None,), daemon=True).start()
-        print(2)
         
     def setupUi(self):
         self.MainWindow.setObjectName("MainWindow")

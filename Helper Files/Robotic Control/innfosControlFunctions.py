@@ -10,7 +10,7 @@ BUFFER_SIZE = 1024
 
 def connectSocket():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(5.0)
+    s.settimeout(3.0)
     return s
 
 def handshake():

@@ -41,6 +41,7 @@ import time
 import numpy as np
 import collections
 import linecache
+import threading
 
 # Neural Network Modules
 from sklearn.model_selection import train_test_split
@@ -114,60 +115,64 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------- #
     #                EMG Program (Should Not Have to Edit)                   #
     # ---------------------------------------------------------------------- #
-    
-    # Initiate the UI
-    guiApp = GUI.Ui_MainWindow(handPort = None)
-    print("Made UI")
-
-    # Initiate the Robot Control
-    robotControl = robotController.robotControl(guiApp)
-    robotControl.checkConnection()
+        
     try:
-        # Setup the Robot's Parameters
-        robotControl.setRoboParams() # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
-        robotControl.setRest()       # Sets the Rest Position to Current Start Position
-        
-        # Initate Robot for Movement and Place in Beginning Position
-        robotControl.powerUp('fancy') # If mode = 'fancy', begin there. Then go to Home Position
-        
+        # ----------------- Stream EMG Data and Move Robot ------------------ #
         # Begin Data Collection and Analysis (Move Robot During Movements)
         if streamArduinoData:
-            # Read Arduino for the Gestures
+            # Initiate the UI
+            guiApp = GUI.Ui_MainWindow(handPort = None)
+        
+            # Initiate the Robotic Control
+            robotControl = robotController.robotControl(guiApp)
+            robotControl.checkConnection()
+            
+            # Setup the Robot's Parameters and Initialize Home Position
+            robotControl.setRoboParams()  # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
+            robotControl.setRest()        # Sets the Rest Position to Current Start Position            
+            robotControl.powerUp('fancy') # If mode = 'fancy', begin there. Then go to Home Position
+    
+            # Stream in EMG Arduino Data and Perform Gesture Recognition
             readData = streamData.arduinoRead(xWidth, moveDataFinger, numChannels, movementOptions, guiApp)
-            readData.streamArduinoData(numDataPoints, emgSerialNum, handSerialNum, seeFullPlot, myModel = MLModel, Controller = robotControl)
+            threading.Thread(target = readData.streamArduinoData, args = (numDataPoints, emgSerialNum, handSerialNum, seeFullPlot, MLModel, robotControl), daemon=True).start()
+            # readData.streamArduinoData(numDataPoints, emgSerialNum, handSerialNum, seeFullPlot, myModel = MLModel, Controller = robotControl)
+            
+            # Start UI Popup
+            guiApp.app.exec_()
+            
+            # Power Down the Robot
+            robotControl.powerDown()
+            
+            # Save the Data Streamed in (if Wanted)
+            if saveInputData:
+                saveInputs = excelData.saveExcel(numChannels)
+                saveInputs.saveData(readData.data, readData.xTopGrouping, readData.featureSetGrouping, saveDataFolder, saveExcelName, sheetName, handMovement)
+        # ------------------------- Train ML Model -------------------------- #
         elif trainModel:
+            # Read in Training Data/Labels
             readData = excelData.readExcel(xWidth, moveDataFinger, numChannels, movementOptions)
             signalData, signalLabels = readData.getTrainingData(trainDataExcelFolder, movementOptions, mode='Train')
             print("\nCollected Signal Data")
             
-            # Split the Data into Training and Validation Sets
+            # Split the Data Randomly into Training and Testing Data Sets
             signalLabelsClass = [np.argmax(i) for i in signalLabels]
             Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabelsClass, test_size=0.1, shuffle= True, stratify=signalLabels)
         
-            # Train the Classifier with the Training Data
+            # Train the Classifier (the Model) with the Training Data
             MLModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels)
             # Plot the Training Loss    
             MLModel.plotModel(signalData, signalLabelsClass)
             
-            # Find the Data Distribution
+            # Find the Class Data Distribution in the Total Training/Testing Set
             classDistribution = collections.Counter(signalLabelsClass)
             print("Class Distribution:", classDistribution)
             print("Number of Data Points = ", len(classDistribution))
-            
 
-            # Save the Classifier
+            # Save the Classifier: if Desired
             if SaveModel:
                 MLModel.saveModel(modelPath)
+            # ------------------------------------------------------------------- #
             
-        # Save the Data (if Wanted)
-        if saveInputData:
-            saveInputs = excelData.saveExcel(numChannels)
-            saveInputs.saveData(readData.data, readData.xTopGrouping, readData.featureSetGrouping, saveDataFolder, saveExcelName, sheetName, handMovement)
-            
-        # Close the GUI
-        #sys.exit(app.exec_())
-        # Power Down Robot
-        robotControl.powerDown()
     # If Something Goes Wrong, Power Down Robot (Controlled)
     except Exception as e:
         exc_type, exc_obj, tb = sys.exc_info()
@@ -183,8 +188,7 @@ if __name__ == "__main__":
         robotControl.powerDown()
     
     
-    
-    
+
     # ---------------------------------------------------------------------- #
     # ---------------------------------------------------------------------- #
     
