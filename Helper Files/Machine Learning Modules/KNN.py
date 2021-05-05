@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import neighbors
 import matplotlib.animation as manimation
+from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
 import joblib
 import os
 
@@ -48,6 +49,24 @@ class KNN:
     def predictData(self, New_Data):
         # Predict Label based on new Data
         return self.model.predict(New_Data)
+    
+    def plot3DLabels(self, signalData, signalLabels):
+        # Plot and Save
+        fig = plt.figure()
+        ax = plt.axes(projection='3d')
+        
+        # Scatter Plot
+        ax.scatter(signalData[:, 0], signalData[:, 1], signalData[:, 2], "o", c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', 6), linewidth = 0.1, s = 20)
+        # Connected Plot
+        #ax.plot_trisurf(time, potential, current, cmap='viridis', edgecolor='none')
+        
+        ax.set_title('Channel Feature Distribution');
+        ax.set_xlabel("Channel 1")
+        ax.set_ylabel("Channel 2")
+        ax.set_zlabel("Channel 3")
+        fig.tight_layout(pad=5)
+        #fig.savefig(outputData + base + ".png", dpi=300)
+        plt.show() # Must be the Last Line
     
     def plotModel(self, signalData, signalLabels):
     
@@ -109,7 +128,7 @@ class KNN:
                 cb = plt.colorbar(ticks=range(6), label='digit value')
                 plt.rcParams['figure.dpi'] = 300
                 plt.clim(-0.5, 5.5)
-            
+                
                 # Write to Video
                 writer.grab_frame()
                 # Clear Previous Frame

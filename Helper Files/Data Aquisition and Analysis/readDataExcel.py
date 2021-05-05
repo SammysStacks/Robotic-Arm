@@ -12,10 +12,12 @@ import re
 import numpy as np
 # Read/Write to Excel
 import openpyxl as xl
+# Style Excel Data
 from openpyxl.styles.colors import Color
 from openpyxl.styles import PatternFill
 from openpyxl.styles import Alignment
-
+from openpyxl.styles import Font
+# Import Global Analysis Class
 from peakAnalysis import globalParam
 
 # --------------------------------------------------------------------------- #
@@ -247,11 +249,6 @@ class saveExcel:
             for channel in range(self.numChannels):
                 row.append(data['Channel'+str(1+channel)][dataNum])
             WB_worksheet.append(row)
-                
-      #  for col in WB_worksheet.iter_cols(min_row=1, min_col = 1, max_col=3, max_row=1):
-       #    print(col, len(col))
-        #    col.sheetColsFeatures['A'].width = len(col)
-            
         
         # Add X Peaks and Features
         sheetColsXPeaks = ['E','F','G','H']
@@ -283,6 +280,54 @@ class saveExcel:
                     rowIndex += 1
                 startIndex += 1 + len(max(xTopGrouping.values(), key = lambda x: len(x[peakNum]))[peakNum])
 
+        # Save as New Excel File
+        WB.save(excel_file)
+        WB.close()
+    
+    def saveLabeledPoints(self, signalData, signalLabelsTrue, signalLabelsML, saveDataFolder, saveExcelName, sheetName = "Signal Data and Labels"): 
+        # Create Output File Directory to Save Data: If None
+        os.makedirs(saveDataFolder, exist_ok=True)
+        
+        # Path to File to Save
+        excel_file = saveDataFolder + saveExcelName
+        
+        # If the File is Not Present: Create The Excel File
+        if not os.path.isfile(excel_file):
+            print("\nSaving the Data as New Excel Workbook")
+            # Make Excel WorkBook
+            WB = xl.Workbook()
+            WB_worksheet = WB.active 
+            WB_worksheet.title = sheetName
+        # Loading in Previous Excel File and Creating New Sheet
+        else:
+            print("Excel File Already Exists. Loading File")
+            WB = xl.load_workbook(excel_file, read_only=False)
+            WB_worksheet = WB.create_sheet(sheetName)
+            print("Saving Sheet as", sheetName)
+        
+        header = ['Channel 1 Features', 'Channel 2 Features', 'Channel 3 Features', 'Channel 4 Features', 'Signal Labels True', 'Signal Labels Predicted']
+        WB_worksheet.append(header)
+        
+        # Save Data to Worksheet
+        signalLabelsTrue = [np.argmax(i) for i in signalLabelsTrue]
+        for ind, channelFeatures in enumerate(signalData):
+            row = list(channelFeatures)
+            # Get labels
+            row.extend([signalLabelsTrue[ind], signalLabelsML[ind]])
+            WB_worksheet.append(row)
+        
+        # Center the Data in the Cells
+        align = Alignment(horizontal='center',vertical='center',wrap_text=True)        
+        for column_cells in WB_worksheet.columns:
+            length = max(len(str(cell.value) if cell.value else "") for cell in column_cells)
+            WB_worksheet.column_dimensions[xl.utils.get_column_letter(column_cells[0].column)].width = length
+            
+            for cell in column_cells:
+                cell.alignment = align
+        # Header Style
+        for cell in WB_worksheet["1:1"]:
+            cell.font = Font(color='00FF0000', italic=True, bold=True)
+            
         # Save as New Excel File
         WB.save(excel_file)
         WB.close()
