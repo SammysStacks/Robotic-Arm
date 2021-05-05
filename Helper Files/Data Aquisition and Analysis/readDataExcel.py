@@ -255,12 +255,12 @@ class saveExcel:
             startIndex = 1
             for peakNum in xTopGrouping[channel]:
                 rowIndex = startIndex
-                peakColor = (peakNum-1)%(len(self.openpyxlColors))
-                cellColor = self.openpyxlColors[peakColor]
+                #peakColor = (peakNum-1)%(len(self.openpyxlColors))
+                #cellColor = self.openpyxlColors[peakColor]
                 for peakVal in xTopGrouping[channel][peakNum]:
                     WB_worksheet[sheetColsXPeaks[channel]][rowIndex].value = peakVal
-                    WB_worksheet[sheetColsXPeaks[channel]][rowIndex].fill = PatternFill(fgColor=cellColor, fill_type = 'solid')
-                    WB_worksheet[sheetColsXPeaks[channel]][rowIndex].alignment = Alignment(horizontal='center')
+                    #WB_worksheet[sheetColsXPeaks[channel]][rowIndex].fill = PatternFill(fgColor=cellColor, fill_type = 'solid')
+                    #WB_worksheet[sheetColsXPeaks[channel]][rowIndex].alignment = Alignment(horizontal='center')
                     rowIndex += 1
                 # Set the Same Row Index for All
                 startIndex += 1 + len(max(xTopGrouping.values(), key = lambda x: len(x[peakNum]))[peakNum])
@@ -269,12 +269,12 @@ class saveExcel:
             startIndex = 1
             for peakNum in featureSetGrouping[channel]:
                 rowIndex = startIndex
-                peakColor = (peakNum-1)%(len(self.openpyxlColors))
-                cellColor = self.openpyxlColors[peakColor]
+                #peakColor = (peakNum-1)%(len(self.openpyxlColors))
+                #cellColor = self.openpyxlColors[peakColor]
                 for featureVal in featureSetGrouping[channel][peakNum]:
                     WB_worksheet[sheetColsFeatures[channel]][rowIndex].value = featureVal
-                    WB_worksheet[sheetColsFeatures[channel]][rowIndex].fill = PatternFill(fgColor=cellColor, fill_type = 'solid')
-                    WB_worksheet[sheetColsFeatures[channel]][rowIndex].alignment = Alignment(horizontal='center')
+                    #WB_worksheet[sheetColsFeatures[channel]][rowIndex].fill = PatternFill(fgColor=cellColor, fill_type = 'solid')
+                    #WB_worksheet[sheetColsFeatures[channel]][rowIndex].alignment = Alignment(horizontal='center')
                     rowIndex += 1
                 startIndex += 1 + len(max(xTopGrouping.values(), key = lambda x: len(x[peakNum]))[peakNum])
         
