@@ -74,7 +74,7 @@ if __name__ == "__main__":
     # General Data Collection Information (You Will Likely Not Edit These)
     handSerialNum = '7593231313935131D162'  # Hand Arduino's Serial Number (port.serial_number)
     emgSerialNum = '85735313333351E040A0'   # EMG Arduino's Serial Number (port.serial_number)
-    numDataPoints = 20000  # The Number of Points to Stream into the EMG Arduino
+    numDataPoints = 50000  # The Number of Points to Stream into the EMG Arduino
     moveDataFinger = 200   # The Number of Data Points to Analyze at a Time
     numChannels = 4        # The Number of EMG Arduino Channels with EMG Signals Read
     xWidth = 1000          # The Number of Data Points to Display to the User (Plot) at a Time

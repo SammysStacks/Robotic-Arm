@@ -37,8 +37,8 @@ class initiateRobotArm():
         time.sleep(0.5)
         
         # Set Position Limits
-        upperPosLim = [20, 20, 20, 20, 20]
-        lowerPosLim = [-20, -20, -20, -20, -20]
+        upperPosLim = [20, 10, 20, 40, 40]
+        lowerPosLim = [-20, -25, -20, -40, -40]
         innfos.poslimit(self.actuID, upperPosLim, lowerPosLim)
         time.sleep(0.5)
     
