@@ -12,10 +12,12 @@ import re
 import numpy as np
 # Read/Write to Excel
 import openpyxl as xl
+# Openpyxl Styles
 from openpyxl.styles.colors import Color
 from openpyxl.styles import PatternFill
 from openpyxl.styles import Alignment
-
+from openpyxl.styles import Font
+# Inport Peak Analysis File
 from peakAnalysis import globalParam
 
 # --------------------------------------------------------------------------- #
@@ -182,13 +184,12 @@ class saveExcel:
         
         # Specify OpenPyxl Asthetics
         self.openpyxlColors = {
-            0: 45,
-            1: 46,
-            2: 47,
-            3: 49,
-            4: 50,
-            5: 51,
-            6: 55,
+            0: "F67280",
+            1: "F8B195",
+            2: "99B898",
+            3: "45ADA8",
+            4: "C06C84",
+            5: "BC9E82",
             }
 
     def saveData(self, data, xTopGrouping, featureSetGrouping, saveDataFolder, saveExcelName,
@@ -261,7 +262,7 @@ class saveExcel:
             for peakNum in xTopGrouping[channel]:
                 rowIndex = startIndex
                 peakColor = (peakNum-1)%(len(self.openpyxlColors))
-                cellColor = Color(indexed = self.openpyxlColors[peakColor])
+                cellColor = self.openpyxlColors[peakColor]
                 for peakVal in xTopGrouping[channel][peakNum]:
                     WB_worksheet[sheetColsXPeaks[channel]][rowIndex].value = peakVal
                     WB_worksheet[sheetColsXPeaks[channel]][rowIndex].fill = PatternFill(fgColor=cellColor, fill_type = 'solid')
@@ -275,14 +276,26 @@ class saveExcel:
             for peakNum in featureSetGrouping[channel]:
                 rowIndex = startIndex
                 peakColor = (peakNum-1)%(len(self.openpyxlColors))
-                cellColor = Color(indexed = self.openpyxlColors[peakColor])
+                cellColor = self.openpyxlColors[peakColor]
                 for featureVal in featureSetGrouping[channel][peakNum]:
                     WB_worksheet[sheetColsFeatures[channel]][rowIndex].value = featureVal
                     WB_worksheet[sheetColsFeatures[channel]][rowIndex].fill = PatternFill(fgColor=cellColor, fill_type = 'solid')
                     WB_worksheet[sheetColsFeatures[channel]][rowIndex].alignment = Alignment(horizontal='center')
                     rowIndex += 1
                 startIndex += 1 + len(max(xTopGrouping.values(), key = lambda x: len(x[peakNum]))[peakNum])
-
+        
+        # Center the Data in the Cells
+        align = Alignment(horizontal='center',vertical='center',wrap_text=True)        
+        for column_cells in WB_worksheet.columns:
+            length = max(len(str(cell.value) if cell.value else "") for cell in column_cells)
+            WB_worksheet.column_dimensions[xl.utils.get_column_letter(column_cells[0].column)].width = length
+            
+            for cell in column_cells:
+                cell.alignment = align
+        # Header Style
+        for cell in WB_worksheet["1:1"]:
+            cell.font = Font(color='00FF0000', italic=True, bold=True)
+            
         # Save as New Excel File
         WB.save(excel_file)
         WB.close()

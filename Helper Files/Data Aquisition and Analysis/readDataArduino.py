@@ -49,16 +49,19 @@ class arduinoRead(globalParam):
         self.emgArduino, self.handArduino = self.initiateArduino(emgSerialNum, handSerialNum)
             
     def initiateArduino(self, emgSerialNum, handSerialNum):
-        # Initiate Hand Arduino
-        try:
-            handPort = self.find_arduino(serialNum = handSerialNum)
-            handArduino = serial.Serial(handPort, baudrate=115200, timeout=1)
-            if self.guiApp:
-                self.guiApp.handArduino = handArduino
-                self.guiApp.initiateRoboticMovement()
-        except Exception as e:
-                print("No Hand Port Found: ", e)
-                sys.exit()
+        if handSerialNum:
+            # Initiate Hand Arduino
+            try:
+                handPort = self.find_arduino(serialNum = handSerialNum)
+                handArduino = serial.Serial(handPort, baudrate=115200, timeout=1)
+                if self.guiApp:
+                    self.guiApp.handArduino = handArduino
+                    self.guiApp.initiateRoboticMovement()
+            except Exception as e:
+                    print("No Hand Port Found: ", e)
+                    sys.exit()
+        else:
+            handArduino = None
         
         # Find EMG Arduino Port. If None: print Error
         try:
