@@ -12,20 +12,11 @@ import re
 import numpy as np
 # Read/Write to Excel
 import openpyxl as xl
-<<<<<<< HEAD
 # Style Excel Data
-=======
-# Openpyxl Styles
->>>>>>> refs/remotes/origin/main
-from openpyxl.styles.colors import Color
 from openpyxl.styles import PatternFill
 from openpyxl.styles import Alignment
 from openpyxl.styles import Font
-<<<<<<< HEAD
-# Import Global Analysis Class
-=======
-# Inport Peak Analysis File
->>>>>>> refs/remotes/origin/main
+# Import Global Peak Analysis Class
 from peakAnalysis import globalParam
 
 # --------------------------------------------------------------------------- #
