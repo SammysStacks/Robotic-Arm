@@ -60,16 +60,16 @@ if __name__ == "__main__":
     xWidth = 2000          # The Number of Data Points to Display to the User at a Time; My beta-Test Used 2000 Points
     
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
-    streamArduinoData = True   # Stream in Data from the Arduino and Analyze
+    streamArduinoData = False   # Stream in Data from the Arduino and Analyze
     readDataFromExcel = False  # Analyze Data from Excel File called 'testDataExcelFile', specifically using Sheet 'testSheetNum'
     reAnalyzePeaks = False     # Read in ALL Data Under 'trainDataExcelFolder', and Reanalyze Peaks (THIS EDITS EXCEL DATA IN PLACE!; DONT STOP PROGRAM MIDWAY)
-    trainModel = False         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
+    trainModel = True         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
     
     # User Option During the Run
     saveInputData = False # Saves the Data Streamed in as 'saveExcelName'
     seeFullPlot = True    # Graph the Peak Analysis IN ADDITION TO the Arduino Data
     SaveModel = False     # Save the Machine Learning Model for Later Use
-    testModel = True    
+    testModel = False    
     
     # ---------------------------------------------------------------------- #
     
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     
     # Use Previously Processed Data that was Saved; Extract Features for Training
     if reAnalyzePeaks or trainModel:
-        trainDataExcelFolder = "../Input Data/Full Training Data/Lab Electrodes/Sam/"  # Path to the Training Data Folder; All .xlsx Data Used
+        trainDataExcelFolder = "../Input Data/Full Training Data/Industry Electrodes/"  # Path to the Training Data Folder; All .xlsx Data Used
     
     if trainModel or testModel:
         # Pick the Machine Learning Module to Use
@@ -98,6 +98,7 @@ if __name__ == "__main__":
         # Initialize Machine Learning Parameters/Data
         modelPath = "./Machine Learning Modules/Models/myModelKNNFull_SamArm.pkl"
 
+    testDataExcelFile = "../Input Data/Full Training Data/Lab Electrodes/Sam/Samuel Solomon 2021-05-05 Round 2.xlsx"   # Data Folder to Save the Excel Data; MUST END IN '/'
 
     # ---------------------------------------------------------------------- #
     # ---------------------------------------------------------------------- #
@@ -178,10 +179,11 @@ if __name__ == "__main__":
             # Plot the training loss    
             MLModel.plotModel(signalData, signalLabelsClass)
             MLModel.plot3DLabels(signalData, signalLabelsClass)
+            MLModel.accuracyDistributionPlot(signalData, signalLabels, MLModel.predictData(signalData), movementOptions)
             # Save Signals and Labels
             saveSignals = False
             if saveSignals:
-                saveExcelName = "Signal Features with Predicted and True Labels.xlsx"; saveDataFolder = "./"
+                saveExcelName = "Signal Features with Predicted and True Labels New.xlsx"; saveDataFolder = "./"
                 saveInputs = excelData.saveExcel(numChannels)
                 saveInputs.saveLabeledPoints(signalData, signalLabels, MLModel.predictData(signalData), saveDataFolder, saveExcelName, sheetName = "Signal Data and Labels")
 

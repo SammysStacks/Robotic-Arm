@@ -78,7 +78,7 @@ class globalParam:
             }
         
         # use ggplot style for more sophisticated visuals
-        plt.style.use('ggplot')
+        #plt.style.use('ggplot')
 
 
 
@@ -225,7 +225,7 @@ class globalParam:
             bufferRMSData = RMSData[-(len(newRMSData) + self.peakDetectionBufferSize):]
             bufferRMSDataX = xDataRMS[-(len(newRMSData) + self.peakDetectionBufferSize):]
             # Find Peaks from the New Data
-            newTopPeaks, self.mapPeakLocToYPos = self.find_peaks(bufferRMSDataX, bufferRMSData, self.mapPeakLocToYPos, dataChannel, RMSData)
+            newTopPeaks, self.mapPeakLocToYPos, yBase = self.find_peaks(bufferRMSDataX, bufferRMSData, self.mapPeakLocToYPos, dataChannel, RMSData)
             # If No New Peaks, Then No New Features
             if newTopPeaks == {}:
                 continue
@@ -238,7 +238,7 @@ class globalParam:
             if abs(xPeakTop[0] - currentHighestXPeak) > self.maxPeakSep and currentHighestXPeak != 0:
                 self.createNewGroup(myModel, Controller)
             # Features Analysis to Group Peaks Together 
-            batchXGroups, featureSetTemp = self.featureDefinition(RMSData, xPeakTop, self.currentGroupNum, myModel, Controller)
+            batchXGroups, featureSetTemp = self.featureDefinition(RMSData, xPeakTop, yBase, self.currentGroupNum, myModel, Controller)
             # Update Overall Grouping Dictionary
             for groupNum in batchXGroups.keys():
                 # Get New Peaks/Features to Add
@@ -307,8 +307,8 @@ class globalParam:
         
         # Find Peaks
         batchTopPeaks = self.find_peaks(xData, RMSData)
-        xPeakTop, yPeakTop = zip(*batchTopPeaks.items())
-        xTopGrouping, featureSet = self.featureDefinition(RMSData, xPeakTop, 0)
+        xPeakTop, yPeakTop, yBase = zip(*batchTopPeaks.items())
+        xTopGrouping, featureSet = self.featureDefinition(RMSData, xPeakTop, yBase, 0)
     
 
         
@@ -363,16 +363,18 @@ class globalParam:
         
         return RMSData
 
-    def featureDefinition(self, RMSData, xTop, currentGroupNum, myModel = None, Controller = None):
+    def featureDefinition(self, RMSData, xTop, yBase, currentGroupNum, myModel = None, Controller = None):
         featureSet = []
         correctionTerm = 0
         # For Every Peak, Take the Average of the Points in Front of it
-        for xTopLoc in xTop:
+        for peakNum in range(len(xTop)):
+            xTopLoc = xTop[peakNum]
+            yBaseline = yBase[peakNum]
             # Get Peak's Points
             featureWindow = RMSData[xTopLoc - self.featureDefinitionBuffer:xTopLoc + self.featureDefinitionBuffer]
             # Take the Average of the Peak as the Feature
             if len(featureWindow) > 0:
-                featureSet.append(np.mean(featureWindow))
+                featureSet.append(np.mean(featureWindow) - yBaseline)
             # Edge Effect: np.mean([]) = NaN -> Ignore This Peak Until Next Round
             else:
                 correctionTerm += 1
@@ -401,22 +403,35 @@ class globalParam:
 
     def find_peaks(self, xData, yData, oldPeaks, channel, RMSData):
         # Convert to Numpy (For Faster Data Processing)
-        numpyDataY = np.array(yData)
         numpyDataX = np.array(xData)
+        numpyDataY = np.array(yData)
         # Find Peak Indices
-        indicesTop = scipy.signal.find_peaks(yData, prominence=.03, height=0.01, width=15, rel_height=0.5, distance = 100)[0]
+        peakInfo = scipy.signal.find_peaks(yData, prominence=.03, height=0.01, width=15, rel_height=0.5, distance = 100)
+        indicesTop = peakInfo[0]
         # Get X,Y Peaks
         xTop = numpyDataX[indicesTop]
         yTop = numpyDataY[indicesTop]
+        yBases = numpyDataY[peakInfo[1]['left_bases']]
+        #print(peakInfo)
         # Find the New Peaks
-        newTopPeaks = {}
+        newTopPeaks = {}; yBase = []
         for i, xLoc in enumerate(xTop):
             if xLoc not in oldPeaks[channel] and xLoc + self.featureDefinitionBuffer > len(RMSData):
                 # Record New Peaks and Add New Peaks to Ongoing list
                 newTopPeaks[xLoc] = yTop[i]
                 oldPeaks[channel][xLoc] = yTop[i]
+                yBase.append(yBases[i])
         # Return New Peaks and Update Peak Dictionary
-        return newTopPeaks, oldPeaks
+        return newTopPeaks, oldPeaks, yBase
+    
+    
+    def removePeakBackground(self, xTop, yTop, RMSData):
+        newY = []
+        for pointNum in range(len(xTop)):
+            baselineIndex = self.findLeftMinimum(RMSData, xTop[pointNum])
+            yPoint = yTop[pointNum] - RMSData[baselineIndex]
+            newY.append(yPoint)
+        return newY
     
     def createNewGroup(self, myModel, Controller):
         if myModel:
@@ -434,8 +449,8 @@ class globalParam:
             channelFeature = self.featureSetGrouping[channel][self.currentGroupNum]
             groupFeatures.append((channelFeature or [0])[0])
         inputData = np.array([groupFeatures])
-        if len(inputData[inputData > 0]) <= 1:
-            print("Only One Signal Found; Not Moving Robot")
+        if len(inputData[inputData > 0]) <= 1 and np.sum(inputData) <= 0.05:
+            print("Only One Small Signal Found; Not Moving Robot")
             return None
         
         # Predict Data

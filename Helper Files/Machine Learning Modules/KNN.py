@@ -2,13 +2,18 @@
 https://scikit-learn.org/stable/auto_examples/neighbors/plot_nca_classification.html#sphx-glr-auto-examples-neighbors-plot-nca-classification-py
 """
 
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import neighbors
+import matplotlib
 import matplotlib.animation as manimation
 from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
 import joblib
 import os
+
+sys.path.append('./Data Aquisition and Analysis/')  # Folder with Machine Learning Files
+import createHeatMap as createMap       # Functions for Neural Network
 
 class KNN:
     def __init__(self, modelPath, numClasses, weight = 'distance'):
@@ -53,20 +58,62 @@ class KNN:
     def plot3DLabels(self, signalData, signalLabels):
         # Plot and Save
         fig = plt.figure()
+        fig.set_size_inches(15,15)
         ax = plt.axes(projection='3d')
         
         # Scatter Plot
-        ax.scatter(signalData[:, 0], signalData[:, 1], signalData[:, 2], "o", c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', 6), linewidth = 0.1, s = 20)
+        ax.scatter(signalData[:, 3], signalData[:, 1], signalData[:, 2], "o", c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', 6), linewidth = 0.1, s = 20)
         # Connected Plot
         #ax.plot_trisurf(time, potential, current, cmap='viridis', edgecolor='none')
         
         ax.set_title('Channel Feature Distribution');
-        ax.set_xlabel("Channel 1")
+        ax.set_xlabel("Channel 4")
         ax.set_ylabel("Channel 2")
         ax.set_zlabel("Channel 3")
         fig.tight_layout(pad=5)
         #fig.savefig(outputData + base + ".png", dpi=300)
         plt.show() # Must be the Last Line
+        
+    def accuracyDistributionPlot(self, signalData, signalLabelsTrue, signalLabelsML, movementOptions):
+        signalLabelsTrue = [np.argmax(i) for i in signalLabelsTrue]
+        
+        # Calculate the Accuracy Matrix
+        accMat = np.zeros((len(movementOptions), len(movementOptions)))
+        for ind, channelFeatures in enumerate(signalData):
+            # Sum(Row) = # of Gestures Made with that Label
+            # Each Column in a Row = The Number of Times that Gesture Was Predicted as Column Label #
+            accMat[signalLabelsTrue[ind]][signalLabelsML[ind]] += 1
+        
+        # Scale Each Row to 100
+        for label in range(len(movementOptions)):
+            accMat[label] = 100*accMat[label]/np.sum(accMat[label])
+        
+        # Make plot
+        fig, ax = plt.subplots()
+        fig.set_size_inches(15,15)
+        
+        # Make heatmap on plot
+        print("\n" + "Making Heat Map")
+        im, cbar = createMap.heatmap(accMat, movementOptions, movementOptions, ax=ax,
+                           cmap="copper", cbarlabel="Gesture Accuracy (%)")
+        print("Adding Annotations")
+        texts = createMap.annotate_heatmap(im, accMat, valfmt="{x:.2f}",)
+        
+        # Style the Fonts
+        print("Styling Fonts")
+        font = {'family' : 'verdana',
+                'weight' : 'bold',
+                'size'   : 20}
+        matplotlib.rc('font', **font)
+        
+        # Format, save, and show
+        print("Tightening Layout")
+        #fig.tight_layout()
+        print("saving")
+        plt.savefig("heat_map.png", dpi=300, bbox_inches='tight')
+        print("showing")
+        plt.show()
+
     
     def plotModel(self, signalData, signalLabels):
     
@@ -84,7 +131,7 @@ class KNN:
         fig = plt.figure()
         
         # Set Channel4 as Constant: Display Data ONLY in This Range
-        setPointX4 = 0.004; # Channel 4's Value
+        setPointX4 = 0.1; # Channel 4's Value
         errorPoint = 0.005; # Width of Channel 4's Values
         x4 = np.ones(np.shape(xx.ravel())[0])*setPointX4
         dataWithinChannel4 = signalData[abs(signalData[:, 3] - setPointX4) <= errorPoint]
