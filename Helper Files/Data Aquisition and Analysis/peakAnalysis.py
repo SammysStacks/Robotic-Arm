@@ -78,7 +78,7 @@ class globalParam:
             }
         
         # use ggplot style for more sophisticated visuals
-        #plt.style.use('ggplot')
+        plt.style.use('ggplot')
 
 
 
@@ -414,8 +414,8 @@ class globalParam:
         
         #yBases = numpyDataY[peakInfo[1]['left_bases']]
         yBases = []
-        for top in yTop:
-            yBases.append(min(numpyDataY[top-200:top]))
+        for top in indicesTop:
+            yBases.append(min(numpyDataY[top-200:top], default=[]))
         #print(peakInfo)
         
         # Find the New Peaks

@@ -54,30 +54,30 @@ if __name__ == "__main__":
     # General Data Collection Information (You Will Likely Not Edit These)
     handSerialNum = '7593231313935131D162'  # Hand Arduino's Serial Number (port.serial_number)
     emgSerialNum = '85735313333351E040A0'  # Arduino's Serial Number (port.serial_number)
-    numDataPoints = 60000  # The Number of Points to Stream into the Arduino
+    numDataPoints = 100000  # The Number of Points to Stream into the Arduino
     moveDataFinger = 200   # The Number of Data Points to Plot/Analyze at a Time; My Beta-Test Used 200 Points
     numChannels = 4        # The Number of Arduino Channels with EMG Signals Read in; My Beta-Test Used 4 Channels
     xWidth = 2000          # The Number of Data Points to Display to the User at a Time; My beta-Test Used 2000 Points
     
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
-    streamArduinoData = False   # Stream in Data from the Arduino and Analyze
+    streamArduinoData = True   # Stream in Data from the Arduino and Analyze
     readDataFromExcel = False  # Analyze Data from Excel File called 'testDataExcelFile', specifically using Sheet 'testSheetNum'
     reAnalyzePeaks = False     # Read in ALL Data Under 'trainDataExcelFolder', and Reanalyze Peaks (THIS EDITS EXCEL DATA IN PLACE!; DONT STOP PROGRAM MIDWAY)
-    trainModel = True         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
+    trainModel = False         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
     
     # User Option During the Run
     saveInputData = False # Saves the Data Streamed in as 'saveExcelName'
     seeFullPlot = True    # Graph the Peak Analysis IN ADDITION TO the Arduino Data
     SaveModel = False     # Save the Machine Learning Model for Later Use
-    testModel = False    
+    testModel = True    
     
     # ---------------------------------------------------------------------- #
     
     # Take Data from the Arduino and Save it as an Excel (For Later Use)
     if saveInputData:
-        saveExcelName = "Samuel Solomon 2021-05-05 Round 2.xlsx"  # The Name of the Saved File
-        saveDataFolder = "../Input Data/Full Training Data/Lab Electrodes/Sam/"   # Data Folder to Save the Excel Data; MUST END IN '/'
-        handMovement = "Release"                          # Speficy the hand Movement You Will Perform
+        saveExcelName = "Samuel Solomon 2021-05-11 Round 2.xlsx"  # The Name of the Saved File
+        saveDataFolder = "../Input Data/Full Training Data/Lab Electrodes/Sam/May11/Test/"   # Data Folder to Save the Excel Data; MUST END IN '/'
+        handMovement = "Grab"                          # Speficy the hand Movement You Will Perform
         
         sheetName = "Trial 1 - "  # If SheetName Already Exists, Excel 1 to Trial #
         sheetName = sheetName + handMovement
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     
     # Use Previously Processed Data that was Saved; Extract Features for Training
     if reAnalyzePeaks or trainModel:
-        trainDataExcelFolder = "../Input Data/Full Training Data/Industry Electrodes/"  # Path to the Training Data Folder; All .xlsx Data Used
+        trainDataExcelFolder = "../Input Data/Full Training Data/Lab Electrodes/Sam/May11/"  # Path to the Training Data Folder; All .xlsx Data Used
     
     if trainModel or testModel:
         # Pick the Machine Learning Module to Use
@@ -97,8 +97,6 @@ if __name__ == "__main__":
         applyKNN = True
         # Initialize Machine Learning Parameters/Data
         modelPath = "./Machine Learning Modules/Models/myModelKNNFull_SamArm.pkl"
-
-    testDataExcelFile = "../Input Data/Full Training Data/Lab Electrodes/Sam/Samuel Solomon 2021-05-05 Round 2.xlsx"   # Data Folder to Save the Excel Data; MUST END IN '/'
 
     # ---------------------------------------------------------------------- #
     # ---------------------------------------------------------------------- #
