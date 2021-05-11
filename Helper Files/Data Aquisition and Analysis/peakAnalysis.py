@@ -411,8 +411,13 @@ class globalParam:
         # Get X,Y Peaks
         xTop = numpyDataX[indicesTop]
         yTop = numpyDataY[indicesTop]
-        yBases = numpyDataY[peakInfo[1]['left_bases']]
+        
+        #yBases = numpyDataY[peakInfo[1]['left_bases']]
+        yBases = []
+        for top in yTop:
+            yBases.append(min(numpyDataY[top-200:top]))
         #print(peakInfo)
+        
         # Find the New Peaks
         newTopPeaks = {}; yBase = []
         for i, xLoc in enumerate(xTop):
