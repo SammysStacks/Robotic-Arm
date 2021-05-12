@@ -83,7 +83,7 @@ if __name__ == "__main__":
     
     # Instead of Arduino Data, Use Test Data from Excel File
     if readDataFromExcel:
-        testDataExcelFile = "../Input Data/Full Training Data/Lab Electrodes/Sam/May11/Samuel Solomon 2021-05-11 Round 2.xlsx" # Path to the Test Data
+        testDataExcelFile = "../Input Data/Full Training Data/Lab Electrodes/Sam/May11/Samuel Solomon 2021-05-11 Round 1.xlsx" # Path to the Test Data
         testSheetNum = 5   # The Sheet/Tab Order (Zeroth/First/Second/Third) on the Bottom of the Excel Document
     
     # Use Previously Processed Data that was Saved; Extract Features for Training
@@ -123,7 +123,7 @@ if __name__ == "__main__":
         elif applySVM:
             MLModel = SVM.SVM(modelPath = modelPath, modelType = "poly", polynomialDegree = 3)
         elif applyLR:
-            MLModel = SVM.SVM(modelPath = modelPath, modelType = "sigmoid", polynomialDegree = 3)
+            MLModel = LR.logisticRegression(modelPath = modelPath)
     else:
         MLModel = None
         

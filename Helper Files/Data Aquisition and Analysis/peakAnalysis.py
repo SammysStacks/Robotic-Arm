@@ -79,7 +79,7 @@ class globalParam:
         
         # use ggplot style for more sophisticated visuals
         plt.style.use('seaborn-poster') #sets the size of the charts
-        plt.style.use('ggplot')
+        #plt.style.use('ggplot')
 
 
 
