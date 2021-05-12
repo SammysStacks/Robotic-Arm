@@ -38,9 +38,9 @@ class globalParam:
         
         # Peak Finding and Feature Holders
         self.RMSDataList = {}
-        self.mapPeakLocToYPos = {}
         self.xTopGrouping = {}
         self.featureSetGrouping = {}
+        self.badPeaks = {}
         
         # Start with Fresh Inputs
         self.resetGlobalVariables()
@@ -58,9 +58,9 @@ class globalParam:
         for channelNum in range(self.numChannels):
             # Hold Analysis Values
             self.RMSDataList[channelNum] = []
-            self.mapPeakLocToYPos[channelNum] = {}
             self.xTopGrouping[channelNum] = {1:[]}
             self.featureSetGrouping[channelNum] = {1:[]}
+            self.badPeaks[channelNum] = []
 
 
     def initPlotPeaks(self): 
@@ -78,6 +78,7 @@ class globalParam:
             }
         
         # use ggplot style for more sophisticated visuals
+        plt.style.use('seaborn-poster') #sets the size of the charts
         plt.style.use('ggplot')
 
 
@@ -150,9 +151,9 @@ class globalParam:
             
             # Hold Analysis Values
             self.RMSDataList[channelNum] = []
-            self.mapPeakLocToYPos[channelNum] = {}
             self.xTopGrouping[channelNum] = {1:[]}
             self.featureSetGrouping[channelNum] = {1:[]}
+            self.badPeaks[channelNum] = []
             
         
         # Tighten Figure White Space (Must be After wW Add Fig Info)
@@ -225,7 +226,7 @@ class globalParam:
             bufferRMSData = RMSData[-(len(newRMSData) + self.peakDetectionBufferSize):]
             bufferRMSDataX = xDataRMS[-(len(newRMSData) + self.peakDetectionBufferSize):]
             # Find Peaks from the New Data
-            newTopPeaks, self.mapPeakLocToYPos, yBase = self.find_peaks(bufferRMSDataX, bufferRMSData, self.mapPeakLocToYPos, dataChannel, RMSData)
+            newTopPeaks, yBase = self.find_peaks(bufferRMSDataX, bufferRMSData, dataChannel, RMSData)
             # If No New Peaks, Then No New Features
             if newTopPeaks == {}:
                 continue
@@ -254,13 +255,11 @@ class globalParam:
                             
             
             # Plot the Peaks; Colored by Grouping
-            yFinger = 0
-            yPeakTop = list(self.mapPeakLocToYPos[dataChannel].values())
             for groupNum in self.xTopGrouping[dataChannel].keys():
                 # Check to See if the Group Has a Plot You Can Use
                 groupPeakPlot = self.movieGraphChannelTopPeaksList[dataChannel].get(groupNum, None)
                 # If None Availible, Create a New Plot to Add the Data
-                if groupPeakPlot == None:
+                if not groupPeakPlot:
                     channelFiltered = self.channelListFiltered[dataChannel]
                     # Color Code the Group Peaks. Wrap Around to First Index When Done
                     groupColor = (groupNum-1)%(len(self.peakCurrentRightColorOrder))
@@ -269,15 +268,12 @@ class globalParam:
                     # Save the Plot for Later Use in the Group
                     self.movieGraphChannelTopPeaksList[dataChannel][groupNum] = groupPeakPlot
                 # Get Peak Points
-                xTopGroup = np.array(self.xTopGrouping[dataChannel][groupNum])
-                yTopGroup = yPeakTop[yFinger:yFinger+len(xTopGroup)]
-                # Add the Data to the Plot
-                xTopGroupPlotWindow = xTopGroup[xTopGroup > xDataRMS[0]]
-                yTopGroupPlotWindow = yTopGroup[-len(xTopGroupPlotWindow):]
-                # Plot the Peaks in the Group
-                groupPeakPlot.set_data(xTopGroupPlotWindow, yTopGroupPlotWindow)
-                # Keep Track of Current Y Data with Respect to the X Group Data
-                yFinger += len(xTopGroup)
+                if len(self.xTopGrouping[dataChannel][groupNum]) != 0:
+                    xPeakTop = self.xTopGrouping[dataChannel][groupNum][0]
+                    if xDataRMS[0] <= xPeakTop:
+                        yPeakTop = RMSData[-len(xDataRMS):][xDataRMS.index(xPeakTop)]
+                        # Plot the Peaks in the Group
+                        groupPeakPlot.set_data(xPeakTop, yPeakTop)
                         
         # Update to Get New Data Next Round
         plt.draw()
@@ -394,14 +390,15 @@ class globalParam:
                 xGrouping[currentGroupNum].append(xTop[i+1])
             # New Group
             else:
-                self.createNewGroup(myModel, Controller)
-                peakGrouping[currentGroupNum] = [featureSet[i+1]]
-                xGrouping[currentGroupNum] = [xTop[i+1]]
+                goodData = self.createNewGroup(myModel, Controller)
+                if goodData:
+                    peakGrouping[currentGroupNum] = [featureSet[i+1]]
+                    xGrouping[currentGroupNum] = [xTop[i+1]]
      
         return xGrouping, peakGrouping
 
 
-    def find_peaks(self, xData, yData, oldPeaks, channel, RMSData):
+    def find_peaks(self, xData, yData, channel, RMSData):
         # Convert to Numpy (For Faster Data Processing)
         numpyDataX = np.array(xData)
         numpyDataY = np.array(yData)
@@ -421,13 +418,13 @@ class globalParam:
         # Find the New Peaks
         newTopPeaks = {}; yBase = []
         for i, xLoc in enumerate(xTop):
-            if xLoc not in oldPeaks[channel] and xLoc + self.featureDefinitionBuffer > len(RMSData):
+            lastBottomPeak = max(max(self.xTopGrouping[channel].values(), default = [0]), default = 0)
+            if xLoc > lastBottomPeak and xLoc + self.featureDefinitionBuffer > len(RMSData):
                 # Record New Peaks and Add New Peaks to Ongoing list
                 newTopPeaks[xLoc] = yTop[i]
-                oldPeaks[channel][xLoc] = yTop[i]
                 yBase.append(yBases[i])
         # Return New Peaks and Update Peak Dictionary
-        return newTopPeaks, oldPeaks, yBase
+        return newTopPeaks, yBase
     
     
     def removePeakBackground(self, xTop, yTop, RMSData):
@@ -438,26 +435,35 @@ class globalParam:
             newY.append(yPoint)
         return newY
     
-    def createNewGroup(self, myModel, Controller):
-        if myModel:
-            self.predictMovement(myModel, Controller)
-        self.currentGroupNum += 1
-        for channel in range(self.numChannels):
-            self.xTopGrouping[channel][self.currentGroupNum] = []
-            self.featureSetGrouping[channel][self.currentGroupNum] = []
-    
-    def predictMovement(self, myModel, Controller = None):
+    def createNewGroup(self, myModel, Controller, goodData = True):
         # Get FeatureSet Point for Group
         groupFeatures = []
         for channel in range(self.numChannels):
             # Get the Features for the Group and Take the First One
             channelFeature = self.featureSetGrouping[channel][self.currentGroupNum]
             groupFeatures.append((channelFeature or [0])[0])
-        inputData = np.array([groupFeatures])
-        if len(inputData[inputData > 0]) <= 1 and np.sum(inputData) <= 0.05:
-            print("Only One Small Signal Found; Not Moving Robot")
-            return None
+        featureArray = np.array([groupFeatures])
         
+        # If the Feature is Bad, Throw it Away
+        if len(featureArray[featureArray > 0]) <= 1 and np.sum(featureArray) <= 0.1:
+            if myModel:
+                print("Only One Small Signal Found; Not Moving Robot")
+            for channelNum in range(self.numChannels):
+                self.badPeaks[channelNum].extend(self.xTopGrouping[channelNum][self.currentGroupNum])
+            self.currentGroupNum -= 1
+            goodData = False
+        # If it is Okay and We Have an ML Model, Predict the Movement
+        elif myModel:
+            self.predictMovement(myModel, featureArray, Controller)
+            
+        self.currentGroupNum += 1
+        for channel in range(self.numChannels):
+            self.xTopGrouping[channel][self.currentGroupNum] = []
+            self.featureSetGrouping[channel][self.currentGroupNum] = []
+        
+        return goodData
+    
+    def predictMovement(self, myModel, inputData, Controller = None):        
         # Predict Data
         predictedIndex = myModel.predictData(inputData)[0]
         predictedLabel = self.movementOptions[predictedIndex]

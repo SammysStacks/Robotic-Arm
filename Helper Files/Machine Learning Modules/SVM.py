@@ -7,36 +7,123 @@ from sklearn.metrics import confusion_matrix
 from sklearn import svm
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib
 from matplotlib.colors import ListedColormap
 import matplotlib.animation as manimation
 import joblib
+import sys
+import os
+from sklearn.model_selection import train_test_split
 
 
-numClassifiers = 6*(6-1)/2
-    
-    
-    
-    
-    
+sys.path.append('./Data Aquisition and Analysis/')  # Folder with Machine Learning Files
+import createHeatMap as createMap       # Functions for Neural Network
     
 
 class SVM:
-    def __init__(self, polynomialDegree = 3):
+    def __init__(self, modelPath, modelType = "rbf", polynomialDegree = 3):
         self.polynomialDegree = polynomialDegree
         
         # Plotting Styles
         self.stepSize = 0.01 # step size in the mesh
         self.cmap_light = ListedColormap(['orange', 'cyan', 'cornflowerblue', 'red']) # Colormap
         self.cmap_bold = ['darkorange', 'c', 'darkblue', 'darkred'] # Colormap
+        
+        # Initialize Model
+        if os.path.exists(modelPath):
+            # If Model Exists, Load it
+            self.loadModel(modelPath)
+        else:
+            # Else, Create the Model
+            self.createModel(modelType)
     
-    def saveModel(self, model, modelPath = "./KNN.sav"):
-        joblib.dump(model, 'scoreregression.pkl')
+    def saveModel(self, modelPath = "./SVM.sav"):
+        joblib.dump(self.model, 'scoreregression.pkl')    
     
     def loadModel(self, modelPath):
-        model = joblib.load(modelPath, mmap_mode ='r')
-        return model
+        with open(modelPath, 'rb') as handle:
+            self.model = joblib.load(handle, mmap_mode ='r')
+        print("SVM Model Loaded")
+            
     
-    def applySVM(self, Training_Data, Training_Labels, Testing_Data, Testing_Labels):
+    def createModel(self, modelType = "rbf"):
+        if modelType == "linear":
+            self.model = svm.SVC(kernel='linear', C=1, decision_function_shape='ovo')
+        elif modelType == "rbf":
+            self.model = svm.SVC(kernel='rbf', gamma=1, C=1, decision_function_shape='ovo')
+        elif modelType == "poly":
+            self.model = svm.SVC(kernel='poly', degree = self.polynomialDegree, C=1, decision_function_shape='ovo')
+        elif modelType == "sigmoid":
+            self.model = svm.SVC(kernel='sigmoid', C=1, decision_function_shape='ovo')
+        else:
+            print("No SVM Model Matches the Requested Type")
+            sys.exit()
+        print("SVM Model Created")
+        
+    def trainModel(self, Training_Data, Training_Labels, Testing_Data, Testing_Labels):  
+        # Train the Model
+        self.model.fit(Training_Data, Training_Labels)
+        self.scoreModel(Testing_Data, Testing_Labels)
+    
+    def scoreModel(self, signalData, signalLabels):
+        print("Score:", self.model.score(signalData, signalLabels))
+    
+    def predictData(self, New_Data):
+        # Predict Label based on new Data
+        return self.model.predict(New_Data)
+    
+    def plot3DLabels(self, signalData, signalLabels, saveFolder = "../Output Data/", name = "Channel Feature Distribution"):
+        # Plot and Save
+        fig = plt.figure()
+        fig.set_size_inches(10,10)
+        ax = plt.axes(projection='3d')
+        
+        # Scatter Plot
+        ax.scatter(signalData[:, 3], signalData[:, 1], signalData[:, 2], "o", c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', 6), linewidth = 0.2, s = 30)
+        
+        ax.set_title('Channel Feature Distribution');
+        ax.set_xlabel("Channel 4")
+        ax.set_ylabel("Channel 2")
+        ax.set_zlabel("Channel 3")
+        #fig.tight_layout()
+        fig.savefig(saveFolder + name + ".png", dpi=200, bbox_inches='tight')
+        plt.show() # Must be the Last Line
+        
+    def accuracyDistributionPlot(self, signalData, signalLabelsTrue, signalLabelsML, movementOptions, saveFolder = "../Output Data/", name = "Accuracy Distribution"):
+        
+        # Calculate the Accuracy Matrix
+        accMat = np.zeros((len(movementOptions), len(movementOptions)))
+        for ind, channelFeatures in enumerate(signalData):
+            # Sum(Row) = # of Gestures Made with that Label
+            # Each Column in a Row = The Number of Times that Gesture Was Predicted as Column Label #
+            accMat[signalLabelsTrue[ind]][signalLabelsML[ind]] += 1
+        
+        # Scale Each Row to 100
+        for label in range(len(movementOptions)):
+            accMat[label] = 100*accMat[label]/np.sum(accMat[label])
+        
+        # Make plot
+        fig, ax = plt.subplots()
+        fig.set_size_inches(8,8)
+        
+        # Make heatmap on plot
+        im, cbar = createMap.heatmap(accMat, movementOptions, movementOptions, ax=ax,
+                           cmap="copper", cbarlabel="Gesture Accuracy (%)")
+        createMap.annotate_heatmap(im, accMat, valfmt="{x:.2f}",)
+        
+        # Style the Fonts
+        font = {'family' : 'verdana',
+                'weight' : 'bold',
+                'size'   : 9}
+        matplotlib.rc('font', **font)
+        
+        # Format, save, and show
+        fig.tight_layout()
+        plt.savefig(saveFolder + name + ".png", dpi=150, bbox_inches='tight')
+        plt.show()
+    
+    def plotModel(self, signalData, signalLabels):
+        Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabels, test_size=0.2, shuffle= True, stratify=signalLabels)
 
         linear = svm.SVC(kernel='linear', C=1, decision_function_shape='ovo').fit(Training_Data, Training_Labels)
         rbf = svm.SVC(kernel='rbf', gamma=1, C=1, decision_function_shape='ovo').fit(Training_Data, Training_Labels)

@@ -19,6 +19,8 @@ from openpyxl.styles import Font
 # Import Global Peak Analysis Class
 from peakAnalysis import globalParam
 
+import time
+
 # --------------------------------------------------------------------------- #
 # --------------------- Extract Test Data from Excel ------------------------ #
 
@@ -83,7 +85,7 @@ class readExcel(globalParam):
             while pointNum+1 - dataFinger >= self.xWidth:
                 self.live_plotter(dataFinger, seeFullPlot, myModel = myModel, Controller = Controller)
                 dataFinger += self.moveDataFinger
-            
+                
         # Finished Data Collection: Report Back to User
         print("\tDone Data Collecting from File: ", analyzeSheet.title)
         
@@ -173,6 +175,11 @@ class readExcel(globalParam):
             return NN_Data, NN_Labels
         elif mode == 'reAnalyze':
             return None
+    
+    def goodFeature(self, groupFeatures):
+        if len(groupFeatures[groupFeatures > 0]) <= 1 and np.sum(groupFeatures) <= 0.05:
+            return False
+        return True
 
 
 
@@ -209,7 +216,6 @@ class saveExcel:
         # Overwrite Previous Excel Sheet; Replacing Sheetname that was Edited
         elif WB:
             print("\tOverWriting Excel File:", excel_file)
-            #WB = xl.load_workbook(excel_file, read_only=False)
             WB_worksheet = WB.create_sheet(sheetName.title)
             print("\tSaving Sheet as", WB_worksheet.title)
         # Loading in Previous Excel File, Creating New Sheet, Editing Trial Number in SheetName
@@ -230,6 +236,7 @@ class saveExcel:
             currentTrial = re.findall(r'\d+', sheetInfo[0])[0]
             newTrial = sheetInfo[0].split(currentTrial)[0] + str(int(currentTrial)+1)
             sheetName = newTrial + " - " + sheetInfo[1]
+            # Add Sheet
             WB_worksheet = WB.create_sheet(sheetName)
             print("Saving Sheet as", sheetName)
         
@@ -241,55 +248,53 @@ class saveExcel:
         header.extend(featureHeader)
         WB_worksheet.append(header)
         
-        # Save Data to Worksheet
+        # Save EMG Data to Worksheet (First Four Columns)
         for dataNum in range(len(data['time_ms'])):
             row = []
             for channel in range(self.numChannels):
                 row.append(data['Channel'+str(1+channel)][dataNum])
             WB_worksheet.append(row)
         
-        # Add X Peaks and Features
-        sheetColsXPeaks = ['E','F','G','H']
-        sheetColsFeatures = ['I','J','K','L']
+        #if not self.goodFeature(channelFeatures):
+        #    continue
+        
+        alignCenter = Alignment(horizontal='center', vertical='center', wrap_text=True)  
+        # Add X Peaks (Next Four Columns) and Then Features (Next Four Columns)
         for channel in range(self.numChannels):
-            startIndex = 1
+            startIndex = 2 # Start at Secon Row (1-Indexed)
             for peakNum in xTopGrouping[channel]:
                 rowIndex = startIndex
                 peakColor = (peakNum-1)%(len(self.openpyxlColors))
                 cellColor = self.openpyxlColors[peakColor]
-                for peakVal in xTopGrouping[channel][peakNum]:
-                    WB_worksheet[sheetColsXPeaks[channel]][rowIndex].value = peakVal
-                    WB_worksheet[sheetColsXPeaks[channel]][rowIndex].fill = PatternFill(fgColor=cellColor, fill_type = 'solid')
-                    WB_worksheet[sheetColsXPeaks[channel]][rowIndex].alignment = Alignment(horizontal='center')
+                for xLoc in xTopGrouping[channel][peakNum]:
+                    # Add X Location
+                    WB_worksheet.cell(row=rowIndex, column=channel + self.numChannels + 1).value = xLoc
+                    WB_worksheet.cell(row=rowIndex, column=channel + self.numChannels + 1).fill = PatternFill(fgColor=cellColor, fill_type = 'solid')
+                    WB_worksheet.cell(row=rowIndex, column=channel + self.numChannels + 1).alignment = alignCenter
+                    
+                    # Add Feature
+                    featureVal = featureSetGrouping[channel][peakNum][0]
+                    WB_worksheet.cell(row=rowIndex, column=channel + self.numChannels*2 + 1).value = featureVal
+                    WB_worksheet.cell(row=rowIndex, column=channel + self.numChannels*2 + 1).fill = PatternFill(fgColor=cellColor, fill_type = 'solid')
+                    WB_worksheet.cell(row=rowIndex, column=channel + self.numChannels*2 + 1).alignment = alignCenter
+                    
                     rowIndex += 1
                 # Set the Same Row Index for All
                 startIndex += 1 + len(max(xTopGrouping.values(), key = lambda x: len(x[peakNum]))[peakNum])
-
-        for channel in range(self.numChannels):
-            startIndex = 1
-            for peakNum in featureSetGrouping[channel]:
-                rowIndex = startIndex
-                peakColor = (peakNum-1)%(len(self.openpyxlColors))
-                cellColor = self.openpyxlColors[peakColor]
-                for featureVal in featureSetGrouping[channel][peakNum]:
-                    WB_worksheet[sheetColsFeatures[channel]][rowIndex].value = featureVal
-                    WB_worksheet[sheetColsFeatures[channel]][rowIndex].fill = PatternFill(fgColor=cellColor, fill_type = 'solid')
-                    WB_worksheet[sheetColsFeatures[channel]][rowIndex].alignment = Alignment(horizontal='center')
-                    rowIndex += 1
-                startIndex += 1 + len(max(xTopGrouping.values(), key = lambda x: len(x[peakNum]))[peakNum])
         
         # Center the Data in the Cells
-        align = Alignment(horizontal='center',vertical='center',wrap_text=True)        
+        for rowInd in range(2, WB_worksheet.max_row + 1):
+            for colInd in range(1, self.numChannels + 1):
+                WB_worksheet.cell(row=rowInd, column=colInd).alignment = alignCenter
+        # Increase Cell Width to Encompass All Data and to be Even
         for column_cells in WB_worksheet.columns:
             length = max(len(str(cell.value) if cell.value else "") for cell in column_cells)
             WB_worksheet.column_dimensions[xl.utils.get_column_letter(column_cells[0].column)].width = length
-            
-            for cell in column_cells:
-                cell.alignment = align
         # Header Style
-        for cell in WB_worksheet["1:1"]:
-            cell.font = Font(color='00FF0000', italic=True, bold=True)
-            
+        for colInd in range(1, self.numChannels*3 + 1):
+            WB_worksheet.cell(row=1, column=colInd).font = Font(color='00FF0000', italic=True, bold=True)
+            WB_worksheet.cell(row=1, column=colInd).alignment = alignCenter
+        
         # Save as New Excel File
         WB.save(excel_file)
         WB.close()

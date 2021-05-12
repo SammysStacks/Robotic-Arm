@@ -44,6 +44,8 @@ import readDataArduino as streamData    # Functions to Read in Data from Arduino
 sys.path.append('./Machine Learning Modules/')  # Folder with Machine Learning Files
 import neuralNetwork as NeuralNet       # Functions for Neural Network
 import KNN as KNN                       # Functions for K-Nearest Neighbors' Algorithm
+import SVM as SVM                       # Functions for K-Nearest Neighbors' Algorithm
+import Linear_Regression as LR          # Functions for K-Nearest Neighbors' Algorithm
 
 
 if __name__ == "__main__":
@@ -60,16 +62,16 @@ if __name__ == "__main__":
     xWidth = 2000          # The Number of Data Points to Display to the User at a Time; My beta-Test Used 2000 Points
     
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
-    streamArduinoData = True   # Stream in Data from the Arduino and Analyze
+    streamArduinoData = False   # Stream in Data from the Arduino and Analyze
     readDataFromExcel = False  # Analyze Data from Excel File called 'testDataExcelFile', specifically using Sheet 'testSheetNum'
     reAnalyzePeaks = False     # Read in ALL Data Under 'trainDataExcelFolder', and Reanalyze Peaks (THIS EDITS EXCEL DATA IN PLACE!; DONT STOP PROGRAM MIDWAY)
-    trainModel = False         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
+    trainModel = True         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
     
     # User Option During the Run
     saveInputData = False # Saves the Data Streamed in as 'saveExcelName'
     seeFullPlot = True    # Graph the Peak Analysis IN ADDITION TO the Arduino Data
     SaveModel = False     # Save the Machine Learning Model for Later Use
-    testModel = True    
+    testModel = False    
     
     # ---------------------------------------------------------------------- #
     
@@ -78,14 +80,11 @@ if __name__ == "__main__":
         saveExcelName = "Samuel Solomon 2021-05-11 Round 2.xlsx"  # The Name of the Saved File
         saveDataFolder = "../Input Data/Full Training Data/Lab Electrodes/Sam/May11/Test/"   # Data Folder to Save the Excel Data; MUST END IN '/'
         handMovement = "Grab"                          # Speficy the hand Movement You Will Perform
-        
-        sheetName = "Trial 1 - "  # If SheetName Already Exists, Excel 1 to Trial #
-        sheetName = sheetName + handMovement
     
     # Instead of Arduino Data, Use Test Data from Excel File
     if readDataFromExcel:
-        testDataExcelFile = "../Input Data/Full Training Data/Industry Electrodes/Samuel Solomon (Pure) 2021-03-17.xlsx" # Path to the Test Data
-        testSheetNum = 0                     # The Sheet/Tab Order (Zeroth/First/Second/Third) on the Bottom of the Excel Document
+        testDataExcelFile = "../Input Data/Full Training Data/Lab Electrodes/Sam/May11/Samuel Solomon 2021-05-11 Round 2.xlsx" # Path to the Test Data
+        testSheetNum = 5   # The Sheet/Tab Order (Zeroth/First/Second/Third) on the Bottom of the Excel Document
     
     # Use Previously Processed Data that was Saved; Extract Features for Training
     if reAnalyzePeaks or trainModel:
@@ -95,8 +94,10 @@ if __name__ == "__main__":
         # Pick the Machine Learning Module to Use
         applyNN = False
         applyKNN = True
+        applySVM = False
+        applyLR = False
         # Initialize Machine Learning Parameters/Data
-        modelPath = "./Machine Learning Modules/Models/myModelKNNFull_SamArm.pkl"
+        modelPath = "./Machine Learning Modules/Models/myModelKNNFull_SamArm1.pkl"
 
     # ---------------------------------------------------------------------- #
     # ---------------------------------------------------------------------- #
@@ -119,6 +120,10 @@ if __name__ == "__main__":
             MLModel = NeuralNet.Neural_Network(modelPath = modelPath, dataDim = numChannels)
         elif applyKNN:
             MLModel = KNN.KNN(modelPath = modelPath, numClasses = len(movementOptions))
+        elif applySVM:
+            MLModel = SVM.SVM(modelPath = modelPath, modelType = "poly", polynomialDegree = 3)
+        elif applyLR:
+            MLModel = SVM.SVM(modelPath = modelPath, modelType = "sigmoid", polynomialDegree = 3)
     else:
         MLModel = None
         
@@ -148,9 +153,14 @@ if __name__ == "__main__":
     
     # Save the Data in Excel: EMG Channels (Cols 1-4); X-Peaks (Cols 5-8); Peak Features (Cols 9-12)
     if saveInputData:
-        saveInputs = excelData.saveExcel(numChannels)
+        # Format Sheet Name
+        sheetName = "Trial 1 - "  # If SheetName Already Exists, Increase Trial # by One
+        sheetName = sheetName + handMovement
+        # Double Check to See if User Wants to Save the Data
         verifiedSave = input("Are you Sure you Want to Save the Data (Y/N): ")
         if verifiedSave.upper() == "Y":
+            # Initialize Class to Save the Data and Save
+            saveInputs = excelData.saveExcel(numChannels)
             saveInputs.saveData(readData.data, readData.xTopGrouping, readData.featureSetGrouping, saveDataFolder, saveExcelName, sheetName, handMovement)
         else:
             print("User Chose Not to Save the Data")
@@ -165,23 +175,24 @@ if __name__ == "__main__":
     # Train the ML
     if trainModel:
         # Split the Data into Training and Validation Sets
-        Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabels, test_size=0.1, shuffle= True, stratify=signalLabels)
+        Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabels, test_size=0.2, shuffle= True, stratify=signalLabels)
         signalLabelsClass = [np.argmax(i) for i in signalLabels]
         
-        if applyKNN:
+        if applyKNN or applySVM or applyLR:
             # Format Labels into 1D Array (Needed for KNN Setup)
-            Training_LabelsKNN = [np.argmax(i) for i in Training_Labels]
-            Testing_LabelsKNN = [np.argmax(i) for i in Testing_Labels]
+            Training_LabelsClass = [np.argmax(i) for i in Training_Labels]
+            Testing_LabelsClass= [np.argmax(i) for i in Testing_Labels]
             # Train the NN with the Training Data
-            MLModel.trainModel(Training_Data, Training_LabelsKNN, Testing_Data, Testing_LabelsKNN)
+            MLModel.trainModel(Training_Data, Training_LabelsClass, Testing_Data, Testing_LabelsClass)
             # Plot the training loss    
-            MLModel.plotModel(signalData, signalLabelsClass)
-            MLModel.plot3DLabels(signalData, signalLabelsClass)
-            MLModel.accuracyDistributionPlot(signalData, signalLabels, MLModel.predictData(signalData), movementOptions)
+            #MLModel.plotModel(signalData, signalLabelsClass)
+            #MLModel.plot3DLabels(signalData, signalLabelsClass)
+            MLModel.accuracyDistributionPlot(signalData, signalLabelsClass, MLModel.predictData(signalData), movementOptions)
             # Save Signals and Labels
             saveSignals = False
             if saveSignals:
-                saveExcelName = "Signal Features with Predicted and True Labels New.xlsx"; saveDataFolder = "./"
+                saveDataFolder = "../Output Data/"
+                saveExcelName = "Signal Features with Predicted and True Labels New.xlsx"
                 saveInputs = excelData.saveExcel(numChannels)
                 saveInputs.saveLabeledPoints(signalData, signalLabels, MLModel.predictData(signalData), saveDataFolder, saveExcelName, sheetName = "Signal Data and Labels")
 
@@ -190,7 +201,9 @@ if __name__ == "__main__":
             # Train the NN with the Training Data
             MLModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels, 500, seeTrainingSteps = False)
             # Plot the training loss    
-            MLModel.plotModel(signalData, signalLabels)
+            MLModel.plotModel(signalData, signalLabelsClass)
+            MLModel.plot3DLabels(signalData, signalLabelsClass)
+            MLModel.accuracyDistributionPlot(signalData, signalLabelsClass, MLModel.predictData(signalData), movementOptions)
             MLModel.plotStats()
 
         # Save the Neural Network (The Weights of Each Edge)

@@ -21,8 +21,11 @@ Citation:
 
 
 import os
+import sys
 import numpy as np
+import matplotlib
 import matplotlib.animation as manimation
+from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
 import matplotlib.pyplot as plt
 # Import Packages]
 import tensorflow as tf
@@ -34,6 +37,9 @@ from matplotlib import pyplot
 
 from tensorflow.python.keras.utils import losses_utils
 import itertools
+
+sys.path.append('./Data Aquisition and Analysis/')  # Folder with Machine Learning Files
+import createHeatMap as createMap       # Functions for Neural Network
 
 # ---------------------------------------------------------------------------#
 # ------------------------- Neural Network ----------------------------------#
@@ -190,8 +196,8 @@ class Neural_Network:
         #model.add(tf.keras.layers.Reshape((1,4)))
         #model.add(tf.keras.layers.LSTM(256))
         model.add(tf.keras.layers.Dense(units=4, activation=tf.nn.tanh))
-        model.add(tf.keras.layers.Dense(units=8, activation=tf.nn.tanh))
-        model.add(tf.keras.layers.Dense(units=12, activation=tf.nn.tanh))
+        #model.add(tf.keras.layers.Dense(units=8, activation=tf.nn.tanh))
+        #model.add(tf.keras.layers.Dense(units=12, activation=tf.nn.tanh))
         model.add(tf.keras.layers.Dense(units=8, activation=tf.nn.tanh))
         #model.add(tf.keras.layers.Dense(units=3, activation=tf.nn.tanh))
         #model.add(tf.keras.layers.Dropout(.02, input_shape=(dim,)))
@@ -255,6 +261,57 @@ class Neural_Network:
         #pyplot.plot(history.history['val_accuracy'], label='test')
         #pyplot.legend()
         pyplot.show()
+        
+        
+    def plot3DLabels(self, signalData, signalLabels, saveFolder = "../Output Data/", name = "Channel Feature Distribution"):
+        # Plot and Save
+        fig = plt.figure()
+        fig.set_size_inches(10,10)
+        ax = plt.axes(projection='3d')
+        
+        # Scatter Plot
+        ax.scatter(signalData[:, 3], signalData[:, 1], signalData[:, 2], "o", c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', 6), linewidth = 0.2, s = 30)
+        
+        ax.set_title('Channel Feature Distribution');
+        ax.set_xlabel("Channel 4")
+        ax.set_ylabel("Channel 2")
+        ax.set_zlabel("Channel 3")
+        #fig.tight_layout()
+        fig.savefig(saveFolder + name + ".png", dpi=200, bbox_inches='tight')
+        plt.show() # Must be the Last Line
+        
+    def accuracyDistributionPlot(self, signalData, signalLabelsTrue, signalLabelsML, movementOptions, saveFolder = "../Output Data/", name = "Accuracy Distribution"):
+        
+        # Calculate the Accuracy Matrix
+        accMat = np.zeros((len(movementOptions), len(movementOptions)))
+        for ind, channelFeatures in enumerate(signalData):
+            # Sum(Row) = # of Gestures Made with that Label
+            # Each Column in a Row = The Number of Times that Gesture Was Predicted as Column Label #
+            accMat[signalLabelsTrue[ind]][signalLabelsML[ind]] += 1
+        
+        # Scale Each Row to 100
+        for label in range(len(movementOptions)):
+            accMat[label] = 100*accMat[label]/np.sum(accMat[label])
+        
+        # Make plot
+        fig, ax = plt.subplots()
+        fig.set_size_inches(8,8)
+        
+        # Make heatmap on plot
+        im, cbar = createMap.heatmap(accMat, movementOptions, movementOptions, ax=ax,
+                           cmap="copper", cbarlabel="Gesture Accuracy (%)")
+        createMap.annotate_heatmap(im, accMat, valfmt="{x:.2f}",)
+        
+        # Style the Fonts
+        font = {'family' : 'verdana',
+                'weight' : 'bold',
+                'size'   : 9}
+        matplotlib.rc('font', **font)
+        
+        # Format, save, and show
+        fig.tight_layout()
+        plt.savefig(saveFolder + name + ".png", dpi=150, bbox_inches='tight')
+        plt.show()
     
     def plotModel(self, signalData, signalLabels):
     

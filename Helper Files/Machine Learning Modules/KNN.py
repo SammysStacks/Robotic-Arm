@@ -55,27 +55,24 @@ class KNN:
         # Predict Label based on new Data
         return self.model.predict(New_Data)
     
-    def plot3DLabels(self, signalData, signalLabels):
+    def plot3DLabels(self, signalData, signalLabels, saveFolder = "../Output Data/", name = "Channel Feature Distribution"):
         # Plot and Save
         fig = plt.figure()
-        fig.set_size_inches(15,15)
+        fig.set_size_inches(10,10)
         ax = plt.axes(projection='3d')
         
         # Scatter Plot
-        ax.scatter(signalData[:, 3], signalData[:, 1], signalData[:, 2], "o", c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', 6), linewidth = 0.1, s = 20)
-        # Connected Plot
-        #ax.plot_trisurf(time, potential, current, cmap='viridis', edgecolor='none')
+        ax.scatter(signalData[:, 3], signalData[:, 1], signalData[:, 2], "o", c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', 6), linewidth = 0.2, s = 30)
         
         ax.set_title('Channel Feature Distribution');
         ax.set_xlabel("Channel 4")
         ax.set_ylabel("Channel 2")
         ax.set_zlabel("Channel 3")
-        fig.tight_layout(pad=5)
-        #fig.savefig(outputData + base + ".png", dpi=300)
+        #fig.tight_layout()
+        fig.savefig(saveFolder + name + ".png", dpi=200, bbox_inches='tight')
         plt.show() # Must be the Last Line
         
-    def accuracyDistributionPlot(self, signalData, signalLabelsTrue, signalLabelsML, movementOptions):
-        signalLabelsTrue = [np.argmax(i) for i in signalLabelsTrue]
+    def accuracyDistributionPlot(self, signalData, signalLabelsTrue, signalLabelsML, movementOptions, saveFolder = "../Output Data/", name = "Accuracy Distribution"):
         
         # Calculate the Accuracy Matrix
         accMat = np.zeros((len(movementOptions), len(movementOptions)))
@@ -90,28 +87,22 @@ class KNN:
         
         # Make plot
         fig, ax = plt.subplots()
-        fig.set_size_inches(15,15)
+        fig.set_size_inches(8,8)
         
         # Make heatmap on plot
-        print("\n" + "Making Heat Map")
         im, cbar = createMap.heatmap(accMat, movementOptions, movementOptions, ax=ax,
                            cmap="copper", cbarlabel="Gesture Accuracy (%)")
-        print("Adding Annotations")
-        texts = createMap.annotate_heatmap(im, accMat, valfmt="{x:.2f}",)
+        createMap.annotate_heatmap(im, accMat, valfmt="{x:.2f}",)
         
         # Style the Fonts
-        print("Styling Fonts")
         font = {'family' : 'verdana',
                 'weight' : 'bold',
-                'size'   : 20}
+                'size'   : 9}
         matplotlib.rc('font', **font)
         
         # Format, save, and show
-        print("Tightening Layout")
-        #fig.tight_layout()
-        print("saving")
-        plt.savefig("heat_map.png", dpi=300, bbox_inches='tight')
-        print("showing")
+        fig.tight_layout()
+        plt.savefig(saveFolder + name + ".png", dpi=150, bbox_inches='tight')
         plt.show()
 
     
