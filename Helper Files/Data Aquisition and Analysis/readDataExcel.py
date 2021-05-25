@@ -320,7 +320,8 @@ class saveExcel:
             WB_worksheet = WB.create_sheet(sheetName)
             print("Saving Sheet as", sheetName)
         
-        header = ['Channel 1 Features', 'Channel 2 Features', 'Channel 3 Features', 'Channel 4 Features', 'Signal Labels True', 'Signal Labels Predicted']
+        header = ['Channel 1 Features', 'Channel 2 Features', 'Channel 3 Features', 'Channel 4 Features'][0:len(signalData)]
+        header.extend(['Signal Labels True', 'Signal Labels Predicted'])
         WB_worksheet.append(header)
         
         # Save Data to Worksheet

@@ -71,7 +71,7 @@ if __name__ == "__main__":
     saveInputData = False # Saves the Data Streamed in as 'saveExcelName'
     seeFullPlot = True    # Graph the Peak Analysis IN ADDITION TO the Arduino Data
     SaveModel = False     # Save the Machine Learning Model for Later Use
-    testModel = False    
+    testModel = True    
     
     # ---------------------------------------------------------------------- #
     
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     # Instead of Arduino Data, Use Test Data from Excel File
     if readDataFromExcel:
         testDataExcelFile = "../Input Data/Full Training Data/Lab Electrodes/Sam/May11/Samuel Solomon 2021-05-11 Round 1.xlsx" # Path to the Test Data
-        testSheetNum = 5   # The Sheet/Tab Order (Zeroth/First/Second/Third) on the Bottom of the Excel Document
+        testSheetNum = 4   # The Sheet/Tab Order (Zeroth/First/Second/Third) on the Bottom of the Excel Document
     
     # Use Previously Processed Data that was Saved; Extract Features for Training
     if reAnalyzePeaks or trainModel:
@@ -187,14 +187,16 @@ if __name__ == "__main__":
             # Plot the training loss    
             #MLModel.plotModel(signalData, signalLabelsClass)
             #MLModel.plot3DLabels(signalData, signalLabelsClass)
-            MLModel.accuracyDistributionPlot(signalData, signalLabelsClass, MLModel.predictData(signalData), movementOptions)
+            map2D = MLModel.mapTo2DPlot(signalData, signalLabelsClass)
+            MLModel.plot3DLabelsMovie(signalData, np.array(signalLabelsClass))
+            #MLModel.accuracyDistributionPlot(signalData, signalLabelsClass, MLModel.predictData(signalData), movementOptions)
             # Save Signals and Labels
-            saveSignals = False
+            saveSignals = True
             if saveSignals:
                 saveDataFolder = "../Output Data/"
-                saveExcelName = "Signal Features with Predicted and True Labels New.xlsx"
+                saveExcelName = "Maped Data.xlsx" #"Signal Features with Predicted and True Labels New.xlsx"
                 saveInputs = excelData.saveExcel(numChannels)
-                saveInputs.saveLabeledPoints(signalData, signalLabels, MLModel.predictData(signalData), saveDataFolder, saveExcelName, sheetName = "Signal Data and Labels")
+                saveInputs.saveLabeledPoints(map2D, signalLabels, MLModel.predictData(signalData), saveDataFolder, saveExcelName, sheetName = "Signal Data and Labels")
 
 
         if applyNN:

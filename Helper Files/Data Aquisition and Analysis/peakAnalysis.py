@@ -172,21 +172,21 @@ class globalParam:
 
     
     def live_plotter(self, dataFinger, seeFullPlot = False, myModel = None, Controller=None):
-                
+        
         # Get X Data: Shared Axis for All Channels
         self.xDataEMG = self.data['time_ms'][dataFinger:dataFinger + self.xWidth]
         # Add incoming Data to Each Respective Channel's Plot
         for dataChannel in range(self.numChannels):
             
-            # ---------------------- Get EMG Signal -----------------------------#
+            # ---------------------- Get EMG Signal --------------------------#
             # Get New Y DataData
             newYData = self.data['Channel' + str(dataChannel+1)][dataFinger:dataFinger + self.xWidth]
             # Plot Raw EMG Data            
             self.movieGraphChannelListRaw[dataChannel].set_data(self.xDataEMG, newYData)
             self.channelListRaw[dataChannel].set_xlim(self.xDataEMG[0], self.xDataEMG[0]+self.xWidth)
-            # -------------------------------------------------------------------#
+            # ----------------------------------------------------------------#
             
-            # ---------------------- High pass Filter ---------------------------#
+            # ---------------------- High pass Filter ------------------------#
             # Calculate the Number of New Data Points You Need for Peak Detecting
             RMSData = self.RMSDataList[dataChannel]
             if len(RMSData) == 0 and dataFinger > 0:
@@ -199,10 +199,10 @@ class globalParam:
             # High Pass Filter to Remove Noise
             startHPF = max(dataFinger + newRMSDataBegins - self.badInitialHighPass,0)
             yDataBuffer = self.data['Channel' + str(dataChannel+1)][startHPF:dataFinger + self.xWidth]
-            filteredData = self.highPassFilter(yDataBuffer, self.f1, self.f3, self.Rp, self.Rs, self.samplingFreq)[-self.xWidth + newRMSDataBegins:]   
-            # -------------------------------------------------------------------#
+            filteredData = self.highPassFilter(yDataBuffer)[-self.xWidth + newRMSDataBegins:]   
+            # ----------------------------------------------------------------#
     
-            # --------------------- Root Mean Squared ---------------------------#
+            # --------------------- Root Mean Squared ------------------------#
             if len(filteredData) >= self.rmsWindow:
                 newRMSData = self.RMSFilter(filteredData, self.rmsWindow, self.stepSize)
                 RMSData.extend(newRMSData)
@@ -211,17 +211,12 @@ class globalParam:
                 print("Please Decrease Your rmsWindow Size or Increase xWidth")
                 sys.exit()
             xDataRMS = self.data['time_ms'][max(len(RMSData) - self.xWidthPeaks,0):len(RMSData)]  
-            # Get New Peak if you Enough Points have Passed
-            self.currentGroupNum = max(self.xTopGrouping[dataChannel].keys(), default=0)
-            currentHighestXPeak = max([max(self.xTopGrouping[i][self.currentGroupNum], default=0) for i in range(self.numChannels)])
-            if abs(xDataRMS[-1] - currentHighestXPeak) > self.maxPeakSep and currentHighestXPeak != 0:
-                self.createNewGroup(myModel, Controller)
             # Plot RMS Data
             self.movieGraphChannelListFiltered[dataChannel].set_data(xDataRMS, RMSData[-self.xWidthPeaks:])
             self.channelListFiltered[dataChannel].set_xlim(xDataRMS[0], xDataRMS[0] + self.xWidthPeaks)
-            # -------------------------------------------------------------------#
+            # ----------------------------------------------------------------#
 
-            # ----------------------- Peak Detection  ---------------------------#
+            # ----------------------- Peak Detection  ------------------------#
             # Get Most Current RMS Data (Add Buffer in Case the peak is Cut Off)
             bufferRMSData = RMSData[-(len(newRMSData) + self.peakDetectionBufferSize):]
             bufferRMSDataX = xDataRMS[-(len(newRMSData) + self.peakDetectionBufferSize):]
@@ -232,12 +227,17 @@ class globalParam:
                 continue
             # Split the Peaks into the X,Y Points
             xPeakTop, yPeakTop = zip(*newTopPeaks.items())
-            # -------------------------------------------------------------------#
+            # ----------------------------------------------------------------#
             
-            # --------------------- Feature Extraction  -------------------------#
+            # ------------------------ Move Robot ----------------------------#
             # If New Peak Was Found with Enough Peak Seperation, Add Group 
-            if abs(xPeakTop[0] - currentHighestXPeak) > self.maxPeakSep and currentHighestXPeak != 0:
+            self.currentGroupNum = max(self.xTopGrouping[dataChannel].keys(), default=0)
+            currentHighestXPeak = max([max(self.xTopGrouping[i][self.currentGroupNum], default=0) for i in range(self.numChannels)])
+            if abs(xDataRMS[-1] - currentHighestXPeak) > self.maxPeakSep and currentHighestXPeak != 0:
                 self.createNewGroup(myModel, Controller)
+            # ----------------------------------------------------------------#
+            
+            # --------------------- Feature Extraction  ----------------------#
             # Features Analysis to Group Peaks Together 
             batchXGroups, featureSetTemp = self.featureDefinition(RMSData, xPeakTop, yBase, self.currentGroupNum, myModel, Controller)
             # Update Overall Grouping Dictionary
@@ -252,8 +252,9 @@ class globalParam:
                 else:
                     self.xTopGrouping[dataChannel][groupNum] = updateXGroups
                     self.featureSetGrouping[dataChannel][groupNum] = updateFeatures
-                            
-            
+            # ----------------------------------------------------------------#
+                   
+            # ------------------------ Plot Peaks ----------------------------#
             # Plot the Peaks; Colored by Grouping
             for groupNum in self.xTopGrouping[dataChannel].keys():
                 # Check to See if the Group Has a Plot You Can Use
@@ -278,6 +279,7 @@ class globalParam:
         # Update to Get New Data Next Round
         plt.draw()
         self.fig.canvas.flush_events()
+        # -------------------------------------------------------------------#
     
 
     def analyzeFullBatch(self, channelNum = 1):
@@ -292,7 +294,7 @@ class globalParam:
         plt.title("EMG Data")
         
         plt.figure()
-        filteredData = self.highPassFilter(yData, self.f1, self.f3, self.Rp, self.Rs, self.samplingFreq)
+        filteredData = self.highPassFilter(yData)
         plt.plot(xData,filteredData, c='tab:blue', alpha=0.7)
         plt.title("Filtered Data")
         
@@ -313,8 +315,7 @@ class globalParam:
 # --------------------------------------------------------------------------- #
 # ------------------------- Signal Analysis --------------------------------- #
 
-
-    def highPassFilter(self, inputData, f1, f3, Rp, Rs, samplingFreq):
+    def highPassFilter(self, inputData):
         """
         data: Data to Filter
         f1: cutOffFreqPassThrough
@@ -323,10 +324,10 @@ class globalParam:
         Rs: cutOffDB (30)
         samplingFreq: Frequecy You Take Data
         """
-        Wp = 2*math.pi*f1/samplingFreq
-        Ws = 2*math.pi*f3/samplingFreq
-        [n, wn] = scipy.signal.cheb1ord(Wp/math.pi, Ws/math.pi, Rp, Rs)
-        [bz1, az1] = scipy.signal.cheby1(n, Rp, Wp/math.pi, 'High')
+        Wp = 2*math.pi*self.f1/self.samplingFreq
+        Ws = 2*math.pi*self.f3/self.samplingFreq
+        [n, wn] = scipy.signal.cheb1ord(Wp/math.pi, Ws/math.pi, self.Rp, self.Rs)
+        [bz1, az1] = scipy.signal.cheby1(n, self.Rp, Wp/math.pi, 'High')
         filteredData = lfilter(bz1, az1, inputData)
         return filteredData
     
