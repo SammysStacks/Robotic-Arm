@@ -131,7 +131,7 @@ if __name__ == "__main__":
             # Setup the Robot's Parameters and Initialize Home Position
             robotControl.setRoboParams()  # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
             robotControl.setRest()        # Sets the Rest Position to Current Start Position            
-            robotControl.powerUp('fancy') # If mode = 'fancy', begin there. Then go to Home Position
+            robotControl.powerUp("", fancyStart = True) # If mode = 'fancy', begin there. Then go to Home Position
     
             # Stream in EMG Arduino Data and Perform Gesture Recognition
             readData = streamData.arduinoRead(emgSerialNum, handSerialNum, xWidth, moveDataFinger, numChannels, movementOptions, guiApp = guiApp)

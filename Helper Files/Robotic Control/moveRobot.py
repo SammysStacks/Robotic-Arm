@@ -14,14 +14,19 @@ class initiateRobotArm():
         self.actuID = [0x01, 0x02, 0x03, 0x04, 0x05]
         
         # Define Common Positions
-        self.HomePos = [-1, -10, 5, 12, 0] # Set the Start/End Home Position
+        self.HomePos = [-1, -10, 5, 12, 0]   # Set the Start/End Home Position
         self.FancyPos = [-1, -14, -8, 13, 0] # Set the Start/End Home Position
         self.RestPos = [-1.2004829049110413, 0.2907487154006958, 1.065185546875, 1.10516357421875, 0.00054931640625] # Set the Start/End Home Position
         self.posError = 0.001
         
+        # Define Action Positions
+        self.startGrabTable = [-1, -13, 10, 14, 4]
+        self.midGrabTable1 = [-1, -14, 11, 16, 4]
+        self.midGrabTable2 = [-1, -15, 12, 18, 4]
+        self.endGrabTable = [-1, -16, 12, 19, 4]
+        
         # Define Movement Parameters
-        # Define Movement Parameters
-        self.maxSpeed = [0.2, 0.2, 0.2, 0.2, 0.2]
+        self.maxSpeed = [0.1, 0.1, 0.1, 0.2, 0.2]
         self.accel = [1.5, 1.5, 1.5, 1.5, 1.5]
         self.decel = [-1.5, -1.5, -1.5, -1.5, -1.5]
         #actuID = innfos.queryID(6)
@@ -68,11 +73,13 @@ class initiateRobotArm():
         while self.isMoving():
             time.sleep(waitTime)
             
-    def powerUp(self, mode):
+    def powerUp(self, startMode, fancyStart = False):
         print("Powering On the Robot\n")
-        if mode == 'fancy':
+        # Add a Fancy Starting Position
+        if fancyStart:
             innfos.setpos(self.actuID, self.FancyPos)
-            self.waitUntilStoped()
+        self.waitUntilStoped()
+        # Power Up Into Starting Position
         innfos.setpos(self.actuID, self.HomePos)
         self.waitUntilStoped()
     
@@ -187,13 +194,16 @@ class moveArm(initiateRobotArm):
         #super(type(self), self).__init__()
         super().__init__(guiApp)
     
-    def homePos(self):
+    def goHome(self):
         # Start at Home
         innfos.setpos(self.actuID, self.HomePos)
         self.waitUntilStoped()
     
-    def moveTo(self, pos):
-        # Start at Home
+    def moveTo(self, pos, waitFirst = False, waitTime = 0):
+        if waitFirst:
+            self.waitUntilStoped()
+            time.sleep(waitTime)
+        # Move Robot
         innfos.setpos(self.actuID, pos)
     
     def askUserForInput(self, mode = "oneTime"):
@@ -259,13 +269,11 @@ class moveHand():
         # Hand Port
         self.handArduino = handArduino
     
-    def grabHand(self):
-        pos = "45"
-        self.moveFinger(pos, com_f = "h6", speed = 1)
+    def grabHand(self, grabAngle = "45"):
+        self.moveFinger(grabAngle, com_f = "h6", speed = 1)
     
-    def releaseHand(self):
-        pos = "90"
-        self.moveFinger(pos, com_f = "h6", speed = 1)
+    def releaseHand(self, releaseAngle = "90"):
+        self.moveFinger(releaseAngle, com_f = "h6", speed = 1)
         
     def moveFinger(self, pos, com_f = 'h1', speed = 1):
         if int(speed) > 5:
@@ -304,27 +312,49 @@ class robotControl(moveArm, moveHand):
 
 if __name__ == "__main__":
     # Initiate the Robot
-    robotControl = robotControl()
+    robotControl = robotControl(handArduino = None, guiApp = None)
     robotControl.checkConnection()
     try:
         # Setup the Robot's Parameters
-        robotControl.setRoboParams() # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
-        robotControl.setRest()       # Sets the Rest Position to Current Start Position
-        
+        robotControl.setRoboParams()  # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
+        robotControl.setRest()        # Sets the Rest Position to Current Start Position            
+      
         # Initate Robot for Movement and Place in Beginning Position
-        Controller = moveArm()
-        Controller.powerUp('fancy') # If mode = 'fancy', begin there. Then go to Home Position
+        robotControl.powerUp("", fancyStart = True) # If mode = 'fancy', begin there. Then go to Home Position
         
-        # User Defined Movements
-        Controller.moveLeft()
-        Controller.moveRight()
-        Controller.moveDown()
-        Controller.moveUp()
+        # ----------------- User Defined Robotic Movement ------------------- #
+        # Move Down to Table 
+        robotControl.moveTo(robotControl.startGrabTable, waitFirst = True, waitTime = 1)
+        robotControl.moveTo(robotControl.midGrabTable1, waitFirst = True, waitTime = 1)
+        robotControl.moveTo(robotControl.midGrabTable2, waitFirst = True, waitTime = 1)
+        robotControl.moveTo(robotControl.endGrabTable, waitFirst = True, waitTime = 1)
+        # Grab the Object
+        #robotControl.grabHand(grabAngle = "45")
+        time.sleep(1)
+        # Move Back Up to Start
+        robotControl.moveTo(robotControl.midGrabTable2, waitFirst = True, waitTime = 1)
+        robotControl.moveTo(robotControl.midGrabTable1, waitFirst = True, waitTime = 1)
+        robotControl.moveTo(robotControl.startGrabTable, waitFirst = True, waitTime = 1)
+        # Move Down to Table 
+        robotControl.moveTo(robotControl.startGrabTable, waitFirst = True, waitTime = 1)
+        robotControl.moveTo(robotControl.midGrabTable1, waitFirst = True, waitTime = 1)
+        robotControl.moveTo(robotControl.midGrabTable2, waitFirst = True, waitTime = 1)
+        robotControl.moveTo(robotControl.endGrabTable, waitFirst = True, waitTime = 1)
+        # Release the Object
+        #robotControl.releaseHand(releaseAngle = "90")
+        time.sleep(1)
+        # Move Back Up to Start
+        robotControl.moveTo(robotControl.midGrabTable2, waitFirst = True, waitTime = 1)
+        robotControl.moveTo(robotControl.midGrabTable1, waitFirst = True, waitTime = 1)
+        robotControl.moveTo(robotControl.startGrabTable, waitFirst = True, waitTime = 1)
+        # ------------------------------------------------------------------- #
         
     # If Something Goes Wrong, Power Down Robot (Controlled)
     except:
-        robotControl.powerDown()
+        robotControl.powerDown(setRest = True)
     
     # Power Down Robot
-    robotControl.powerDown()
+    print("Finished Moving")
+    time.sleep(3)
+    robotControl.powerDown(setRest = True)
     
