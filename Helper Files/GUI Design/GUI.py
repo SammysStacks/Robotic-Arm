@@ -3,7 +3,7 @@
 
 # Basic Modules
 import sys
-import threading
+import time
 # Import UI Modules
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -28,7 +28,7 @@ class Ui_MainWindow():
         self.robotControl = None
         self.numFingers = numFingers
         self.numActuators = numActuators
-        self.handArduino = None
+        self.handArduino = handArduino
     
         # Create UI
         self.MainWindow = QtWidgets.QMainWindow()
@@ -42,8 +42,13 @@ class Ui_MainWindow():
     
     def initiateRoboticMovement(self):
         # Initiate Robot Class
-        self.robotControl = robotController.robotControl(handArduino = self.handArduino, guiApp = None)
+        self.robotControl = robotController.robotControl(handArduino = self.handArduino, guiApp = self)
         
+        # Link the Gesture Buttons to Their Respective Functions
+        self.pushButton_g.clicked.connect(self.robotControl.grabHand)
+        self.pushButton_r.clicked.connect(self.robotControl.releaseHand)
+        self.pushButton_down.clicked.connect(self.robotControl.moveDown)
+        self.pushButton_up.clicked.connect(self.robotControl.moveUp)
         
     def setupUi(self):
         self.MainWindow.setObjectName("MainWindow")
@@ -94,7 +99,6 @@ class Ui_MainWindow():
             # Set Finger Label Style
             self.fingerLabel[fingerInd].setFont(fontFingerLabel)
             self.fingerLabel[fingerInd].setObjectName("label_" + str(fingerInd+1))
-            
         
         # Arm Position Font
         fontArm = QtGui.QFont()
@@ -261,20 +265,37 @@ class Ui_MainWindow():
         QtCore.QMetaObject.connectSlotsByName(self.MainWindow)
                
 
-        # link function to button
-        for fingerInd in range(self.numFingers):
-            self.fingerButton[fingerInd].clicked.connect(lambda: self.setFingerPos(fingerIndex = fingerInd))
+        # Link the Finger Buttons
+        self.fingerButton[0].clicked.connect(lambda: self.setFingerPos(fingerIndex = 0 + 1))
+        self.fingerButton[1].clicked.connect(lambda: self.setFingerPos(fingerIndex = 1 + 1))
+        self.fingerButton[2].clicked.connect(lambda: self.setFingerPos(fingerIndex = 2 + 1))
+        self.fingerButton[3].clicked.connect(lambda: self.setFingerPos(fingerIndex = 3 + 1))
+        self.fingerButton[4].clicked.connect(lambda: self.setFingerPos(fingerIndex = 4 + 1))
+        
+        # Link the Operational Buttons
         self.pushButton_arm.clicked.connect(self.click_Move_Arm)
         self.laser_on.clicked.connect(self.click_Laser_On)
         self.laser_off.clicked.connect(self.click_Laser_Off)
+        self.pushButton_reset.clicked.connect(self.resetButton)
         
     
-    def setFingerPos(self, fingerIndex = 1):
+    def resetButton(self):
+        print("Resetting")
+        for fingerInd in range(self.numFingers):
+            time.sleep(2)
+            self.setFingerPos(fingerIndex = fingerInd+1, pos = "90")
+    
+    def setFingerPos(self, fingerIndex = 1, pos = None):
         """
         fingerIndex: Finger Position Starting at the Little Finger (1-Indexed)
         """
-        pos = self.fingerText[fingerIndex - 1].toPlainText()
-        self.robotControl.moveFinger(pos, com_f = 'h' + str(fingerIndex))
+        if not pos:
+            pos = self.fingerText[fingerIndex - 1].toPlainText()
+        # Move the Finger if the Position is Within the Interval [0, 180]
+        if float(pos) < 0 or float(pos) > 180:
+            print("Will Not Move the Finger Outside of [0, 180] Interval")
+        else:
+            self.robotControl.moveFinger(pos, com_f = 'h' + str(fingerIndex))
         
     def click_Move_Arm(self):
         pos = list(map(lambda posList: int(posList.toPlainText()), self.armPos))
@@ -287,13 +308,14 @@ class Ui_MainWindow():
     def click_Laser_Off(self):
         if self.handArduino:
             self.handArduino.write(str.encode('s0'))
+        self.Number_distance.setText(self.translate("MainWindow", "Laser Off"))
 
   
     def retranslateUi(self):
         self.MainWindow.setWindowTitle(self.translate("MainWindow", "Hand control"))
         for fingerInd in range(self.numFingers):
             self.fingerButton[fingerInd].setText(self.translate("MainWindow", "Set Position"))
-            self.fingerLabel[fingerInd].setText(self.translate("MainWindow", "Finger " + str(self.numFingers+1)))
+            self.fingerLabel[fingerInd].setText(self.translate("MainWindow", "Finger " + str(fingerInd+1)))
         self.pushButton_g.setText(self.translate("MainWindow", "Grab"))
         self.pushButton_r.setText(self.translate("MainWindow", "Release"))
         self.pushButton_reset.setText(self.translate("MainWindow", "Reset"))

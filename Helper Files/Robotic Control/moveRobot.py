@@ -9,7 +9,7 @@ import innfosControlFunctions as innfos
 # --------------------------- User Can Edit --------------------------------- #
 
 class initiateRobotArm():
-    def __init__(self):        
+    def __init__(self, guiApp = None):        
         # Label Actuators
         self.actuID = [0x01, 0x02, 0x03, 0x04, 0x05]
         
@@ -21,10 +21,13 @@ class initiateRobotArm():
         
         # Define Movement Parameters
         # Define Movement Parameters
-        self.maxSpeed = [0.1, 0.1, 0.1, 0.1, 0.1]
+        self.maxSpeed = [0.2, 0.2, 0.2, 0.2, 0.2]
         self.accel = [1.5, 1.5, 1.5, 1.5, 1.5]
         self.decel = [-1.5, -1.5, -1.5, -1.5, -1.5]
         #actuID = innfos.queryID(6)
+        
+        # Specify the Gui
+        self.guiApp = guiApp
     
     def setRoboParams(self):
         # Find and Connect to Actuators
@@ -66,18 +69,19 @@ class initiateRobotArm():
             time.sleep(waitTime)
             
     def powerUp(self, mode):
-        print("Powering On")
+        print("Powering On the Robot\n")
         if mode == 'fancy':
             innfos.setpos(self.actuID, self.FancyPos)
             self.waitUntilStoped()
         innfos.setpos(self.actuID, self.HomePos)
         self.waitUntilStoped()
     
-    def powerDown(self):
-        print("Powering Off")
+    def powerDown(self, setRest = True):
+        print("Powering Off the Robot")
         self.waitUntilStoped()
-        innfos.setpos(self.actuID, self.RestPos)
-        self.waitUntilStoped(1)
+        if setRest:
+            innfos.setpos(self.actuID, self.RestPos)
+            self.waitUntilStoped(1)
         innfos.disableact(self.actuID)
     
     def checkConnection(self):
@@ -87,9 +91,9 @@ class initiateRobotArm():
             innfos.enableact(data)
             innfos.disableact(data)
             if statusg ==1:
-                print('Connection is ok')
+                print('Connected to the Robot')
             else:
-                print('Connection failed')
+                print('Connection to the Robot Failed')
                 sys.exit()
         except Exception as e:
             print('Connection Error:', e)
@@ -110,6 +114,7 @@ class initiateRobotArm():
         -------
 
         """
+        
         # Update all the Motors
         if motorNum == None:
             # Make Sure that the user Inputed the Correct Type
@@ -124,7 +129,7 @@ class initiateRobotArm():
                     # Change the Value
                     self.maxSpeed = newVal
                     self.stopRobot()
-                    self.click_Move_Arm()
+                    self.guiApp.click_Move_Arm()
                 else:
                     # Change the Value
                     self.maxSpeed = newVal
@@ -133,13 +138,13 @@ class initiateRobotArm():
                 # If You are Slowing it Down, Stop the Robot First
                 if self.maxSpeed[0] > newVal[0]:
                     self.stopRobot()
-                    self.click_Move_Arm()
+                    self.guiApp.click_Move_Arm()
             elif mode == "decel":
                 self.decel = newVal
                 # If You are Slowing it Down, Stop the Robot First
                 if self.maxSpeed[0] > newVal[0]:
                     self.stopRobot()
-                    self.click_Move_Arm()
+                    self.guiApp.click_Move_Arm()
             else:
                 print("No Parameter was Given; None were Changed")
             
@@ -156,19 +161,19 @@ class initiateRobotArm():
                 # If You are Slowing it Down, Stop the Robot First
                 if self.maxSpeed[0] > newVal[0]:
                     self.stopRobot()
-                    self.click_Move_Arm()
+                    self.guiApp.click_Move_Arm()
             elif mode == "accel":
                 self.accel[motorNum] = newVal
                 # If You are Slowing it Down, Stop the Robot First
                 if self.maxSpeed[0] > newVal[0]:
                     self.stopRobot()
-                    self.click_Move_Arm()
+                    self.guiApp.click_Move_Arm()
             elif mode == "decel":
                 self.decel[motorNum] = newVal
                 # If You are Slowing it Down, Stop the Robot First
                 if self.maxSpeed[0] > newVal[0]:
                     self.stopRobot()
-                    self.click_Move_Arm()
+                    self.guiApp.click_Move_Arm()
             else:
                 print("No Parameter was Given; None were Changed")
                 
@@ -178,9 +183,9 @@ class initiateRobotArm():
 
 class moveArm(initiateRobotArm):
     
-    def __init__(self):
+    def __init__(self, guiApp = None):
         #super(type(self), self).__init__()
-        super().__init__()
+        super().__init__(guiApp)
     
     def homePos(self):
         # Start at Home
@@ -255,40 +260,44 @@ class moveHand():
         self.handArduino = handArduino
     
     def grabHand(self):
-        print("Grabbing")
+        pos = "45"
+        self.moveFinger(pos, com_f = "h6", speed = 1)
     
     def releaseHand(self):
-        print("Releasing")
-    
+        pos = "90"
+        self.moveFinger(pos, com_f = "h6", speed = 1)
+        
     def moveFinger(self, pos, com_f = 'h1', speed = 1):
         if int(speed) > 5:
             speed = 5
         elif int(speed) <=0:
             speed =0
-        if len(str(pos)) == 1:
-            pos = '00' + str(pos)
-        elif len(str(pos)) == 2:
-            pos = '0' + str(pos)
-        elif len(str(pos)) == 3:
-            pos = str(pos)
-        com = com_f + str(pos) + str(speed)
+        if len(pos) == 1:
+            arduinoPos = '00' + pos
+        elif len(pos) == 2:
+            arduinoPos = '0' + pos
+        elif len(pos) == 3:
+            arduinoPos = pos
+        com = com_f + str(arduinoPos) + str(speed)
         # Move the Finger
         self.handArduino.write(str.encode(com))
         # Update UI
-        #self.updateUIText(int(com_f[-1]), pos)
+        self.updateFingerText(int(com_f[-1]), pos)
 
 class robotControl(moveArm, moveHand):
     
     def __init__(self, handArduino = None, guiApp = None):
         # Initiate Parent Classes
         moveHand.__init__(self, handArduino)
-        moveArm.__init__(self)
-        
-        # UI Class
-        self.guiApp = guiApp
+        moveArm.__init__(self, guiApp)
     
     def updateFingerText(self, fingerIndex, fingerPos):
-         self.guiApp.fingerText[fingerIndex - 1].setText(fingerPos)
+        if self.guiApp:
+            if fingerIndex < 6:
+                self.guiApp.fingerText[fingerIndex - 1].setText(fingerPos)
+            else:
+                for fingerInd in range(5):
+                    self.guiApp.fingerText[fingerInd].setText(fingerPos)
 
 # --------------------------------------------------------------------------- #
 # ------------------------- Defined Program --------------------------------- #

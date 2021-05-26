@@ -240,10 +240,8 @@ class arduinoRead(globalParam):
         _ = self.handArduino.read_all()
         
         # Set Up Laser Reading
-        l_time = 0
-        l_time = self.distanceRead(l_time, self.handArduino, Controller)
-        #threading.Thread(target = self.app.exec_(), args = (l_time,), daemon=True).start()
-    
+        threading.Thread(target = self.distanceRead, args = (Controller, n_data), daemon=True).start()
+        
         # Receive data
         read_buffer = b""
         dataFinger = 0
@@ -273,42 +271,42 @@ class arduinoRead(globalParam):
                 print(e)
                 pass
             
-            
-            
         # Close the Arduino at the End
-        print("Finished Streaming in Data; Closing Arduino")
+        print("Finished Streaming in Data; Closing Arduino\n")
         self.emgArduino.close()
         self.handArduino.write(str.encode('s0')) # turn off the laser
         self.handArduino.close()
         if self.guiApp:
             self.guiApp.handArduino = None
+            self.guiApp.resetButton()
         
     
-    def distanceRead(self, l_time, handArduino, RoboArm):
-        
-        if handArduino.in_waiting > 0:
-            d_laser = handArduino.read_until()
-            distance = d_laser.decode()
-
-            self.guiApp.Number_distance.setText(self.guiApp.translate("MainWindow", str(distance)))
-            distance = int(distance)
-            l_time = l_time + 100
-            if distance < self.distance_slow and self.speed_x == 1:
-                RoboArm.updateMovementParams([self.speed_slow]*5, 'speed')
-                self.speed_x = 0
-                print('slow')
-            elif distance >= self.distance_slow and self.speed_x == 0 and distance <= 2000:
-                RoboArm.updateMovementParams([self.speed_fast]*5, 'speed')
-                self.speed_x = 1
-                print('fast')
-            elif distance == self.STOP and self.stop_x == 0:
-                print('stop!!')
-                RoboArm.stopRobot()
-                self.stop_x = 1
-            elif distance == self.MOVE:
-                self.stop_x =0
-        
-        return l_time 
+    def distanceRead(self, RoboArm, n_data):        
+        l_time = 0
+        while len(self.data["time_ms"]) < n_data:
+            if self.handArduino.in_waiting > 0:
+                d_laser = self.handArduino.read_until()
+                distance = d_laser.decode()
+    
+                self.guiApp.Number_distance.setText(self.guiApp.translate("MainWindow", str(distance)))
+                distance = int(distance)
+                l_time = l_time + 100
+                if distance < self.distance_slow and self.speed_x == 1:
+                    RoboArm.updateMovementParams([self.speed_slow]*5, 'speed')
+                    self.speed_x = 0
+                    print('slow')
+                elif distance >= self.distance_slow and self.speed_x == 0 and distance <= 2000:
+                    RoboArm.updateMovementParams([self.speed_fast]*5, 'speed')
+                    self.speed_x = 1
+                    print('fast')
+                elif distance == self.STOP and self.stop_x == 0:
+                    print('stop!!')
+                    RoboArm.stopRobot()
+                    self.stop_x = 1
+                elif distance == self.MOVE:
+                    self.stop_x =0
+            time.sleep(0.05)
+         
  
     
  

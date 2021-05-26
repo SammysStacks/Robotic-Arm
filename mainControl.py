@@ -23,6 +23,7 @@
         $ conda install joblib
         $ conda install numpy
         $ conda install keras
+        $ conda install pandas
         
     --------------------------------------------------------------------------
 """
@@ -124,7 +125,7 @@ if __name__ == "__main__":
             guiApp = GUI.Ui_MainWindow(handArduino = None)
         
             # Initiate the Robotic Control
-            robotControl = robotController.robotControl(guiApp)
+            robotControl = robotController.robotControl(handArduino = None, guiApp = guiApp)
             robotControl.checkConnection()
             
             # Setup the Robot's Parameters and Initialize Home Position
@@ -133,14 +134,14 @@ if __name__ == "__main__":
             robotControl.powerUp('fancy') # If mode = 'fancy', begin there. Then go to Home Position
     
             # Stream in EMG Arduino Data and Perform Gesture Recognition
-            readData = streamData.arduinoRead(emgSerialNum, handSerialNum, xWidth, moveDataFinger, numChannels, movementOptions, guiApp)
+            readData = streamData.arduinoRead(emgSerialNum, handSerialNum, xWidth, moveDataFinger, numChannels, movementOptions, guiApp = guiApp)
             threading.Thread(target = readData.streamArduinoData, args = (numDataPoints, seeFullPlot, MLModel, robotControl), daemon=True).start()
             
             # Start UI Popup
             guiApp.app.exec_()
             
             # Power Down the Robot
-            robotControl.powerDown()
+            robotControl.powerDown(setRest = False)
             
             # Save the Data Streamed in (if Wanted)
             if saveInputData:
