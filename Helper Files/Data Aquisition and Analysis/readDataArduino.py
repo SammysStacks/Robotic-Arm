@@ -40,7 +40,7 @@ class arduinoRead(globalParam):
         self.speed_x = 1 # speed_x = 1 when the arm is in fast mode, otherwise, speed_x = 0
         self.stop_x = 0  # stop_x = 1 when robot hand is stopped by the pressure sensor
         self.distance_slow = 120 # robot arm will slow down if the distance is less than this number,
-        self.speed_slow = 0.02 # speed of arm in slow mode
+        self.speed_slow = 0.05 # speed of arm in slow mode
         self.speed_fast = 0.15 # speed of arm in fast mode
         self.STOP = 9999 # when hand touch something, int(9999) will be sent to computer
         self.MOVE = 8888 # when hand does not touch anything, int(8888) will be sent to computer
@@ -285,7 +285,8 @@ class arduinoRead(globalParam):
     
     def distanceRead(self, RoboArm, n_data):
         print("In Distance Read")
-        self.handArduino.read_until()
+        for _ in range(5):
+            self.handArduino.read_until()
         l_time = 0
         while len(self.data["time_ms"]) < n_data and not self.killDistanceRead:
             if self.handArduino.in_waiting > 0:
@@ -298,11 +299,15 @@ class arduinoRead(globalParam):
                 distance = int(distance)
                 l_time = l_time + 100
                 if distance < self.distance_slow and self.speed_x == 1:
+                    self.handArduino.read_until()
                     RoboArm.updateMovementParams([self.speed_slow]*5, 'speed')
+                    self.handArduino.read_until()
                     self.speed_x = 0
                     print('slow')
                 elif distance >= self.distance_slow and self.speed_x == 0 and distance <= 2000:
+                    self.handArduino.read_until()
                     RoboArm.updateMovementParams([self.speed_fast]*5, 'speed')
+                    self.handArduino.read_until()
                     self.speed_x = 1
                     print('fast')
                 elif distance == self.STOP and self.stop_x == 0:
