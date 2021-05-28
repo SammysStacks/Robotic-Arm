@@ -19,6 +19,7 @@
         $ conda install matplotlib
         $ conda install tensorflow
         $ conda install openpyxl
+        $ conda install pyserial
         $ conda install sklearn
         $ conda install joblib
         $ conda install numpy
@@ -137,11 +138,14 @@ if __name__ == "__main__":
             readData = streamData.arduinoRead(emgSerialNum, handSerialNum, xWidth, moveDataFinger, numChannels, movementOptions, guiApp = guiApp)
             threading.Thread(target = readData.streamArduinoData, args = (numDataPoints, seeFullPlot, MLModel, robotControl), daemon=True).start()
             
+ #           readData.guiApp.robotControl.userAction()
+
             # Start UI Popup
             guiApp.app.exec_()
             
             # Power Down the Robot
             robotControl.powerDown(setRest = False)
+            guiApp.resetButton()
             
             # Save the Data Streamed in (if Wanted)
             if saveInputData:

@@ -45,10 +45,10 @@ class Ui_MainWindow():
         self.robotControl = robotController.robotControl(handArduino = self.handArduino, guiApp = self)
         
         # Link the Gesture Buttons to Their Respective Functions
-        self.pushButton_g.clicked.connect(self.robotControl.grabHand)
-        self.pushButton_r.clicked.connect(self.robotControl.releaseHand)
-        self.pushButton_down.clicked.connect(self.robotControl.moveDown)
-        self.pushButton_up.clicked.connect(self.robotControl.moveUp)
+        self.pushButton_g.clicked.connect(lambda: self.robotControl.grabHand())
+        self.pushButton_r.clicked.connect(lambda: self.robotControl.releaseHand())
+        self.pushButton_down.clicked.connect(lambda: self.robotControl.moveDown())
+        self.pushButton_up.clicked.connect(lambda: self.robotControl.moveUp())
         
     def setupUi(self):
         self.MainWindow.setObjectName("MainWindow")

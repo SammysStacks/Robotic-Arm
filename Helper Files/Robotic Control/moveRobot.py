@@ -1,9 +1,15 @@
 # Import Modules
 import time
 import sys
+import linecache
 import functools
+import threading
 # Import innfosControlFunctions.py (Must be in Same Folder!)
 import innfosControlFunctions as innfos
+# import Read Arduino
+sys.path.append('./Helper Files/Data Aquisition and Analysis/')  # Folder with Data Aquisition Files
+sys.path.append('../Data Aquisition and Analysis/')  # Folder with Data Aquisition Files
+import readDataArduino as readArduinoClass   # Functions to Read in Data from Arduino
 
 # --------------------------------------------------------------------------- #
 # --------------------------- User Can Edit --------------------------------- #
@@ -17,7 +23,7 @@ class initiateRobotArm():
         self.HomePos = [-1, -10, 5, 12, 0]   # Set the Start/End Home Position
         self.FancyPos = [-1, -14, -8, 13, 0] # Set the Start/End Home Position
         self.RestPos = [-1.2004829049110413, 0.2907487154006958, 1.065185546875, 1.10516357421875, 0.00054931640625] # Set the Start/End Home Position
-        self.posError = 0.001
+        self.posError = 0.0008
         
         # Define Action Positions
         self.startGrabTable = [-1, -13, 10, 14, 4]
@@ -26,10 +32,10 @@ class initiateRobotArm():
         self.endGrabTable = [-1, -16, 12, 19, 4]
         
         # Define Movement Parameters
-        self.maxSpeed = [0.1, 0.1, 0.1, 0.2, 0.2]
+        self.maxSpeed = [0.2, 0.2, 0.2, 0.4, 0.4]
+        self.Speed = [0.1, 0.1, 0.1, 0.3, 0.3]
         self.accel = [1.5, 1.5, 1.5, 1.5, 1.5]
         self.decel = [-1.5, -1.5, -1.5, -1.5, -1.5]
-        #actuID = innfos.queryID(6)
         
         # Specify the Gui
         self.guiApp = guiApp
@@ -41,7 +47,7 @@ class initiateRobotArm():
         time.sleep(0.5)
         
         # Set Speed, Acceleration, and Deceleration
-        innfos.trapposset(self.actuID, self.accel, self.maxSpeed, self.decel)
+        innfos.trapposset(self.actuID, self.accel, self.Speed, self.decel)
         time.sleep(0.5)
         
         # Set Position Limits
@@ -58,11 +64,13 @@ class initiateRobotArm():
         if pos:
             self.RestPos = pos
         else:
+            self.waitUntilStoped(waitTime = 1)
             currentPos = self.getCurrentPos()
             self.RestPos = currentPos.copy()
     
-    def isMoving(self):
+    def isMoving(self, sampleTime = 0.5):
         initalPos = self.getCurrentPos()
+        time.sleep(sampleTime)
         finalPos = self.getCurrentPos()
         if functools.reduce(lambda x, y : x and y, map(lambda p, q: abs(p-q) < self.posError,initalPos,finalPos), True): 
             return False
@@ -74,21 +82,24 @@ class initiateRobotArm():
             time.sleep(waitTime)
             
     def powerUp(self, startMode, fancyStart = False):
+        innfos.trapposset(self.actuID, self.accel, self.maxSpeed, self.decel)
         print("Powering On the Robot\n")
         # Add a Fancy Starting Position
         if fancyStart:
             innfos.setpos(self.actuID, self.FancyPos)
         self.waitUntilStoped()
+        print("Move to Home")
         # Power Up Into Starting Position
         innfos.setpos(self.actuID, self.HomePos)
-        self.waitUntilStoped()
+        self.waitUntilStoped(waitTime = 1)
+        innfos.trapposset(self.actuID, self.accel, self.Speed, self.decel)
     
     def powerDown(self, setRest = True):
         print("Powering Off the Robot")
-        self.waitUntilStoped()
+        self.waitUntilStoped(waitTime = 2)
         if setRest:
             innfos.setpos(self.actuID, self.RestPos)
-            self.waitUntilStoped(1)
+            self.waitUntilStoped(waitTime = 1)
         innfos.disableact(self.actuID)
     
     def checkConnection(self):
@@ -107,7 +118,7 @@ class initiateRobotArm():
             sys.exit()
     
     def stopRobot(self):
-        while self.isMoving():
+        while self.isMoving(sampleTime = 0.1):
             stopAt = self.getCurrentPos()
             self.moveTo(stopAt)
     
@@ -125,67 +136,73 @@ class initiateRobotArm():
         # Update all the Motors
         if motorNum == None:
             # Make Sure that the user Inputed the Correct Type
-            if type(newVal) != list or len(newVal) != len(self.maxSpeed):
+            if type(newVal) != list or len(newVal) != len(self.Speed):
                 print("Please Provide a List of Speeds for All Actuators")
                 return None
             
             # Update the Correct Movement Parameter
             if mode == 'speed':                
                 # If You are Slowing it Down, Stop the Robot First
-                if self.maxSpeed[0] > newVal[0]:
+                if self.Speed[0] > newVal[0]:
                     # Change the Value
-                    self.maxSpeed = newVal
+                    self.Speed = newVal
                     self.stopRobot()
-                    self.guiApp.click_Move_Arm()
+                    if self.guiApp:
+                       self.guiApp.click_Move_Arm()
                 else:
                     # Change the Value
-                    self.maxSpeed = newVal
+                    self.Speed = newVal
             elif mode == "accel":
                 self.accel = newVal
                 # If You are Slowing it Down, Stop the Robot First
-                if self.maxSpeed[0] > newVal[0]:
+                if self.Speed[0] > newVal[0]:
                     self.stopRobot()
-                    self.guiApp.click_Move_Arm()
+                    if self.guiApp:
+                        self.guiApp.click_Move_Arm()
             elif mode == "decel":
                 self.decel = newVal
                 # If You are Slowing it Down, Stop the Robot First
-                if self.maxSpeed[0] > newVal[0]:
+                if self.Speed[0] > newVal[0]:
                     self.stopRobot()
-                    self.guiApp.click_Move_Arm()
+                    if self.guiApp:
+                        self.guiApp.click_Move_Arm()
             else:
                 print("No Parameter was Given; None were Changed")
             
         # Update Only One Motor's Value
         else:
             # Make Sure that the user Inputed the Correct Type
-            if type(newVal) == list or motorNum >= len(self.maxSpeed) or motorNum < 0:
-                print("Please Provide a Single Number Between 0 and", len(self.maxSpeed)-1)
+            if type(newVal) == list or motorNum >= len(self.Speed) or motorNum < 0:
+                print("Please Provide a Single Number Between 0 and", len(self.Speed)-1)
                 return None
             
             # Update the Correct Movement Parameter
             if mode == 'speed':
-                self.maxSpeed[motorNum] = newVal
+                self.Speed[motorNum] = newVal
                 # If You are Slowing it Down, Stop the Robot First
-                if self.maxSpeed[0] > newVal[0]:
+                if self.Speed[0] > newVal[0]:
                     self.stopRobot()
-                    self.guiApp.click_Move_Arm()
+                    if self.guiApp:
+                        self.guiApp.click_Move_Arm()
             elif mode == "accel":
                 self.accel[motorNum] = newVal
                 # If You are Slowing it Down, Stop the Robot First
-                if self.maxSpeed[0] > newVal[0]:
+                if self.Speed[0] > newVal[0]:
                     self.stopRobot()
-                    self.guiApp.click_Move_Arm()
+                    if self.guiApp:
+                        self.guiApp.click_Move_Arm()
             elif mode == "decel":
                 self.decel[motorNum] = newVal
                 # If You are Slowing it Down, Stop the Robot First
-                if self.maxSpeed[0] > newVal[0]:
+                if self.Speed[0] > newVal[0]:
                     self.stopRobot()
-                    self.guiApp.click_Move_Arm()
+                    if self.guiApp:
+                        self.guiApp.click_Move_Arm()
             else:
                 print("No Parameter was Given; None were Changed")
                 
         # Set the new limits
-        innfos.trapposset(self.actuID, self.accel, self.maxSpeed, self.decel)                
+        innfos.trapposset(self.actuID, self.accel, self.Speed, self.decel)                
 
 
 class moveArm(initiateRobotArm):
@@ -199,12 +216,13 @@ class moveArm(initiateRobotArm):
         innfos.setpos(self.actuID, self.HomePos)
         self.waitUntilStoped()
     
-    def moveTo(self, pos, waitFirst = False, waitTime = 0):
+    def moveTo(self, pos, waitFirst = False, waitLast = False, waitTime = 0.5):
         if waitFirst:
-            self.waitUntilStoped()
-            time.sleep(waitTime)
+            self.waitUntilStoped(waitTime)
         # Move Robot
         innfos.setpos(self.actuID, pos)
+        if waitLast:
+            self.waitUntilStoped(waitTime)
     
     def askUserForInput(self, mode = "oneTime"):
         currentPos = self.getCurrentPos()
@@ -268,18 +286,26 @@ class moveHand():
     def __init__(self, handArduino):
         # Hand Port
         self.handArduino = handArduino
+        # Specify Hand Parameters
+        self.numFingers = 5
     
     def grabHand(self, grabAngle = "45"):
         self.moveFinger(grabAngle, com_f = "h6", speed = 1)
     
     def releaseHand(self, releaseAngle = "90"):
         self.moveFinger(releaseAngle, com_f = "h6", speed = 1)
+    
+    def resetFingers(self):
+        print("Resetting")
+        for fingerInd in range(self.numFingers):
+            time.sleep(2)
+            self.setFingerPos(fingerIndex = fingerInd+1, pos = "90")
         
     def moveFinger(self, pos, com_f = 'h1', speed = 1):
         if int(speed) > 5:
             speed = 5
         elif int(speed) <=0:
-            speed =0
+            speed = 0
         if len(pos) == 1:
             arduinoPos = '00' + pos
         elif len(pos) == 2:
@@ -299,6 +325,32 @@ class robotControl(moveArm, moveHand):
         moveHand.__init__(self, handArduino)
         moveArm.__init__(self, guiApp)
     
+    def userAction(self):
+        # Move Down to Table 
+        self.moveTo(self.startGrabTable, waitFirst = True, waitLast = False, waitTime = 0.5)
+        self.moveTo(self.midGrabTable1, waitFirst = True, waitLast = False, waitTime = 0.5)
+        self.moveTo(self.midGrabTable2, waitFirst = True, waitLast = False, waitTime = 0.5)
+        self.moveTo(self.endGrabTable, waitFirst = True, waitLast = False, waitTime = 0.5)
+        # Grab the Object
+        self.grabHand(grabAngle = "45")
+        time.sleep(1)
+        # Move Back Up to Start
+        self.moveTo(self.midGrabTable2, waitFirst = True, waitLast = False, waitTime = 0.5)
+        self.moveTo(self.midGrabTable1, waitFirst = True, waitLast = False, waitTime = 0.5)
+        self.moveTo(self.startGrabTable, waitFirst = True, waitLast = False, waitTime = 0.5)
+        # Move Down to Table 
+        self.moveTo(self.startGrabTable, waitFirst = True, waitLast = False, waitTime = 0.5)
+        self.moveTo(self.midGrabTable1, waitFirst = True, waitLast = False, waitTime = 0.5)
+        self.moveTo(self.midGrabTable2, waitFirst = True, waitLast = False, waitTime = 0.5)
+        self.moveTo(self.endGrabTable, waitFirst = True, waitLast = False, waitTime = 0.5)
+        # Release the Object
+        self.releaseHand(releaseAngle = "90")
+        time.sleep(1)
+        # Move Back Up to Start
+        self.moveTo(self.midGrabTable2, waitFirst = True, waitLast = False, waitTime = 0.5)
+        self.moveTo(self.midGrabTable1, waitFirst = True, waitLast = False, waitTime = 0.5)
+        self.moveTo(self.startGrabTable, waitFirst = True, waitLast = False, waitTime = 0.5)
+            
     def updateFingerText(self, fingerIndex, fingerPos):
         if self.guiApp:
             if fingerIndex < 6:
@@ -311,50 +363,79 @@ class robotControl(moveArm, moveHand):
 # ------------------------- Defined Program --------------------------------- #
 
 if __name__ == "__main__":
+    # General Data Collection Information (You Will Likely Not Edit These)
+    handSerialNum = '7593231313935131D162'  # Hand Arduino's Serial Number (port.serial_number)
+    emgSerialNum = '85735313333351E040A0'   # EMG Arduino's Serial Number (port.serial_number)
+    n_data = 10000
+    
+    # Get Hand and EMG Arudinos
+    readArduino = readArduinoClass.arduinoRead(emgSerialNum, handSerialNum)
+
     # Initiate the Robot
-    robotControl = robotControl(handArduino = None, guiApp = None)
+    robotControl = robotControl(handArduino = readArduino.handArduino, guiApp = None)
     robotControl.checkConnection()
+    
     try:
         # Setup the Robot's Parameters
         robotControl.setRoboParams()  # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
         robotControl.setRest()        # Sets the Rest Position to Current Start Position            
-      
-        # Initate Robot for Movement and Place in Beginning Position
-        robotControl.powerUp("", fancyStart = True) # If mode = 'fancy', begin there. Then go to Home Position
         
+        # Initate Robot for Movement and Place in Beginning Position
+        robotControl.powerUp("", fancyStart = False) # If mode = 'fancy', begin there. Then go to Home Position
+
         # ----------------- User Defined Robotic Movement ------------------- #
+        # Set Up Laser Reading
+        threading.Thread(target = readArduino.distanceRead, args = (robotControl, n_data), daemon=True).start()
+        # Turn Laser On
+        readArduino.handArduino.write(str.encode('s1'))
         # Move Down to Table 
-        robotControl.moveTo(robotControl.startGrabTable, waitFirst = True, waitTime = 1)
-        robotControl.moveTo(robotControl.midGrabTable1, waitFirst = True, waitTime = 1)
-        robotControl.moveTo(robotControl.midGrabTable2, waitFirst = True, waitTime = 1)
-        robotControl.moveTo(robotControl.endGrabTable, waitFirst = True, waitTime = 1)
+        robotControl.moveTo(robotControl.startGrabTable, waitFirst = False, waitLast = False, waitTime = 0.5)
+        robotControl.moveTo(robotControl.midGrabTable1, waitFirst = False, waitLast = False, waitTime = 0.5)
+        robotControl.moveTo(robotControl.midGrabTable2, waitFirst = False, waitLast = False, waitTime = 0.5)
+        robotControl.moveTo(robotControl.endGrabTable, waitFirst = False, waitLast = True, waitTime = 0.5)
         # Grab the Object
-        #robotControl.grabHand(grabAngle = "45")
-        time.sleep(1)
+        time.sleep(1); robotControl.grabHand(grabAngle = "45"); time.sleep(2)
+        # Turn Laser Off
+        readArduino.handArduino.write(str.encode('s0'))
+        readArduino.killDistanceRead = True
+        robotControl.updateMovementParams([0.1, 0.1, 0.1, 0.3, 0.3], 'speed')
         # Move Back Up to Start
-        robotControl.moveTo(robotControl.midGrabTable2, waitFirst = True, waitTime = 1)
-        robotControl.moveTo(robotControl.midGrabTable1, waitFirst = True, waitTime = 1)
-        robotControl.moveTo(robotControl.startGrabTable, waitFirst = True, waitTime = 1)
+        robotControl.moveTo(robotControl.midGrabTable2, waitFirst = True, waitLast = False, waitTime = 0.5)
+        robotControl.moveTo(robotControl.midGrabTable1, waitFirst = False, waitLast = False, waitTime = 0.5)
+        robotControl.moveTo(robotControl.startGrabTable, waitFirst = False, waitLast = True, waitTime = 0.5)
         # Move Down to Table 
-        robotControl.moveTo(robotControl.startGrabTable, waitFirst = True, waitTime = 1)
-        robotControl.moveTo(robotControl.midGrabTable1, waitFirst = True, waitTime = 1)
-        robotControl.moveTo(robotControl.midGrabTable2, waitFirst = True, waitTime = 1)
-        robotControl.moveTo(robotControl.endGrabTable, waitFirst = True, waitTime = 1)
+        robotControl.moveTo(robotControl.startGrabTable, waitFirst = True, waitLast = False, waitTime = 0.5)
+        robotControl.moveTo(robotControl.midGrabTable1, waitFirst = False, waitLast = False, waitTime = 0.5)
+        robotControl.moveTo(robotControl.midGrabTable2, waitFirst = False, waitLast = False, waitTime = 0.5)
+        robotControl.moveTo(robotControl.endGrabTable, waitFirst = False, waitLast = True, waitTime = 0.5)
         # Release the Object
-        #robotControl.releaseHand(releaseAngle = "90")
-        time.sleep(1)
+        time.sleep(1); robotControl.releaseHand(releaseAngle = "90"); time.sleep(2)
         # Move Back Up to Start
-        robotControl.moveTo(robotControl.midGrabTable2, waitFirst = True, waitTime = 1)
-        robotControl.moveTo(robotControl.midGrabTable1, waitFirst = True, waitTime = 1)
-        robotControl.moveTo(robotControl.startGrabTable, waitFirst = True, waitTime = 1)
+        robotControl.moveTo(robotControl.midGrabTable2, waitFirst = True, waitLast = False, waitTime = 0.5)
+        robotControl.moveTo(robotControl.midGrabTable1, waitFirst = False, waitLast = False, waitTime = 0.5)
+        robotControl.moveTo(robotControl.startGrabTable, waitFirst = False, waitLast = True, waitTime = 0.5)
         # ------------------------------------------------------------------- #
         
     # If Something Goes Wrong, Power Down Robot (Controlled)
-    except:
+    except Exception as e:
+        exc_type, exc_obj, tb = sys.exc_info()
+        f = tb.tb_frame
+        lineno = tb.tb_lineno
+        filename = f.f_code.co_filename
+        linecache.checkcache(filename)
+        line = linecache.getline(filename, lineno, f.f_globals)
+        print('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj))
+        print(e)
+        time.sleep(5)    
+        # Turn Off Robot
         robotControl.powerDown(setRest = True)
+        readArduino.emgArduino.close()
+        readArduino.handArduino.close()
     
     # Power Down Robot
     print("Finished Moving")
-    time.sleep(3)
+    time.sleep(5)
     robotControl.powerDown(setRest = True)
+    readArduino.emgArduino.close()
+    readArduino.handArduino.close()
     

@@ -48,6 +48,8 @@ class arduinoRead(globalParam):
         # Initiate Arduinos
         self.emgArduino, self.handArduino = self.initiateArduino(emgSerialNum, handSerialNum)
             
+        self.killDistanceRead = False
+        
     def initiateArduino(self, emgSerialNum, handSerialNum):
         if handSerialNum:
             # Initiate Hand Arduino
@@ -281,14 +283,18 @@ class arduinoRead(globalParam):
             self.guiApp.resetButton()
         
     
-    def distanceRead(self, RoboArm, n_data):        
+    def distanceRead(self, RoboArm, n_data):
+        print("In Distance Read")
+        self.handArduino.read_until()
         l_time = 0
-        while len(self.data["time_ms"]) < n_data:
+        while len(self.data["time_ms"]) < n_data and not self.killDistanceRead:
             if self.handArduino.in_waiting > 0:
                 d_laser = self.handArduino.read_until()
                 distance = d_laser.decode()
-    
-                self.guiApp.Number_distance.setText(self.guiApp.translate("MainWindow", str(distance)))
+                
+                # Update Gui App Text
+                if self.guiApp:
+                    self.guiApp.Number_distance.setText(self.guiApp.translate("MainWindow", str(distance)))
                 distance = int(distance)
                 l_time = l_time + 100
                 if distance < self.distance_slow and self.speed_x == 1:
