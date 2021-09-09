@@ -63,13 +63,13 @@ if __name__ == "__main__":
     
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
     streamArduinoData = False   # Stream in Data from the Arduino and Analyze
-    readDataFromExcel = False  # Analyze Data from Excel File called 'testDataExcelFile', specifically using Sheet 'testSheetNum'
+    readDataFromExcel = True  # Analyze Data from Excel File called 'testDataExcelFile', specifically using Sheet 'testSheetNum'
     reAnalyzePeaks = False     # Read in ALL Data Under 'trainDataExcelFolder', and Reanalyze Peaks (THIS EDITS EXCEL DATA IN PLACE!; DONT STOP PROGRAM MIDWAY)
-    trainModel = True         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
+    trainModel = False         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
     
     # User Option During the Run
     saveInputData = False # Saves the Data Streamed in as 'saveExcelName'
-    seeFullPlot = True    # Graph the Peak Analysis IN ADDITION TO the Arduino Data
+    seeFullPlot = False    # Graph the Peak Analysis IN ADDITION TO the Arduino Data
     SaveModel = False     # Save the Machine Learning Model for Later Use
     testModel = True    
     
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     
     # Instead of Arduino Data, Use Test Data from Excel File
     if readDataFromExcel:
-        testDataExcelFile = "../Input Data/Full Training Data/Lab Electrodes/Sam/May11/Samuel Solomon 2021-05-11 Round 1.xlsx" # Path to the Test Data
+        testDataExcelFile = "../Input Data/Full Training Data/Lab Electrodes/Sam/May11/Samuel Solomon 2021-05-11 Round 2.xlsx" # Path to the Test Data
         testSheetNum = 4   # The Sheet/Tab Order (Zeroth/First/Second/Third) on the Bottom of the Excel Document
     
     # Use Previously Processed Data that was Saved; Extract Features for Training

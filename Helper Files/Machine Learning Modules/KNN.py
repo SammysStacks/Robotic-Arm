@@ -78,6 +78,8 @@ class KNN:
         mds = MDS(n_components=2,random_state=0, n_init = 4)
         X_2d = mds.fit_transform(X_scaled)
         
+        X_2d = self.rotatePoints(X_2d, -np.pi/2).T
+        
         figMap = plt.scatter(X_2d[:,0], X_2d[:,1], c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', 6), s = 130, marker='.', edgecolors='k')        
         
         # Figure Aesthetics
@@ -91,6 +93,20 @@ class KNN:
         plt.show() # Must be the Last Line
         
         return X_2d
+    
+    def rotatePoints(self, rotatingMatrix, theta_rad = -np.pi/2):
+
+        A = np.matrix([[np.cos(theta_rad), -np.sin(theta_rad)],
+                       [np.sin(theta_rad), np.cos(theta_rad)]])
+        
+        m2 = np.zeros(rotatingMatrix.shape)
+        
+        for i,v in enumerate(rotatingMatrix):
+          w = A @ v.T
+          m2[i] = w
+        m2 = m2.T
+        
+        return m2
     
     
     def plot3DLabels(self, signalData, signalLabels, saveFolder = "../Output Data/", name = "Channel Feature Distribution"):
