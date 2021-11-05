@@ -57,12 +57,13 @@ if __name__ == "__main__":
     numDataPoints = 50000   # The Number of Points to Stream into the Arduino
     numTimePoints = 3000    # The Number of Data Points to Display to the User at a Time; My beta-Test Used 2000 Points
     moveDataFinger = 200    # The Number of NEW Data Points to Analyze at a Time; My Beta-Test Used 200 Points with Plotting (100 Without). This CAN Change How SOME Peaks are Found (be Careful)
-    samplingFreq = 800      # The Average Number of Points Steamed Into the Arduino Per Second; If NONE Given, Algorithm will Calculate Based on Initial Data
+    samplingFreq = None     # The Average Number of Points Steamed Into the Arduino Per Second; If NONE Given, Algorithm will Calculate Based on Initial Data
     numChannels = 4         # The Number of Arduino Channels with EMG Signals Read in; My Beta-Test Used 4 Channels
     numFeatures = 4         # The Number of Features to Extract/Save/Train on
     # Specify the Type of Movements to Learn
-    gestureClasses = np.char.lower(["Up", "Down", "Left", "Right", "Grab", "Release"])  # Define Labels as Array
-    
+    #gestureClasses = np.char.lower(["Up", "Down", "Left", "Right", "Grab", "Release"])  # Define Labels as Array
+    gestureClasses = np.char.lower(["Forwards", "Back", "Left", "Right", "Rotate Left", "Rotate Right"])  # Define Labels as Array
+
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
     streamArduinoData = False  # Stream in Data from the Arduino and Analyze; Input 'testModel' = True to Apply Learning
     readDataFromExcel = True   # Analyze Data from Excel File called 'testDataExcelFile' on Sheet Number 'testSheetNum'
