@@ -2,21 +2,20 @@
 https://scikit-learn.org/stable/auto_examples/neighbors/plot_nca_classification.html#sphx-glr-auto-examples-neighbors-plot-nca-classification-py
 """
 
-import sys
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn import neighbors
-import matplotlib
-import matplotlib.animation as manimation
-from mpl_toolkits import mplot3d
-from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
-import joblib
+
+# Import Basic Modules
 import os
-
-
+import sys
+import joblib
 import numpy as np
-from sklearn.datasets import load_iris
+
+# Import Modules for Plotting
+import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.animation as manimation
+
+# Import Machine Learning Modules
+from sklearn import neighbors
 from sklearn.manifold import MDS
 from sklearn.preprocessing import MinMaxScaler
 

@@ -12,42 +12,40 @@
     Channel 2 (second lowest on arduino) is to the right of channel one on the arm
     with respect to the user looking directly at the hand (away from thumb)
     
+    Each Channel Consists of 3 Electrodes: Two EMG Electrodes + 1 EMG Reference
+    The Standard Setup Consists of Placing the Electrodes along a muscle group.
+    The Reference Electrode Should be Placed in the Middle, And the Electrodes
+    Should Line Up On the Axis From the hand to the Elbow (If Using Lower Arm).
+    Provide Decent Spacing Between the Electrodes (Noticeable Gap)
+    
+    HardWare Processing:
+    The Code Below Used the Following Electronic Material from Olimex:  
+        Circuit Board: https://www.olimex.com/Products/Duino/Shields/SHIELD-EKG-EMG/open-source-hardware
+        Electrodes: https://www.olimex.com/Products/Duino/Shields/SHIELD-EKG-EMG-PRO/
+    
     --------------------------------------------------------------------------
     
     Modules to Import Before Running the Program (Some May be Missing):
-        $ conda install -c conda-forge ffmpeg
+        $ conda install scikit-learn
         $ conda install matplotlib
         $ conda install tensorflow
         $ conda install openpyxl
         $ conda install pyserial
-        $ conda install sklearn
         $ conda install joblib
         $ conda install numpy
         $ conda install keras
-        $ conda install pandas
         
     --------------------------------------------------------------------------
 """
-
-
-"""
-UI Needs to Move the Robot and the Robot Needs to Change the UI: CIRCULAR
-Sampling Frequency of Laser (currently 0.76; need 0.05)
-UI is NOT asychronous and the program wont run after the UI is called
-"""
-
 # --------------------------------------------------------------------------- #
 
 # Basic Modules
 import sys
 import time
-import numpy as np
-import collections
 import linecache
 import threading
-
-# Neural Network Modules
-from sklearn.model_selection import train_test_split
+import numpy as np
+from pathlib import Path
 
 # Import GUI Template
 sys.path.append('./Helper Files/GUI Design/')  # Folder with GUI Files
@@ -59,12 +57,13 @@ import moveRobot as robotController              # Functions to Control Robot Mo
 
 # Import Data Aquisition and Analysis Files
 sys.path.append('./Helper Files/Data Aquisition and Analysis/')  # Folder with Data Aquisition Files
-import readDataArduino as streamData    # Functions to Read in Data from Arduino
-import readDataExcel as excelData       # Functions to Save/Read in Data from Excel
+import emgAnalysis as emgAnalysis         # Functions to Analyze the EMG Data
+import readDataExcel as excelData         # Functions to Save/Read in Data from Excel
+import readDataArduino as streamData      # Functions to Read in Data from Arduino
 
 # Import Machine Learning Files
-sys.path.append('./Helper Files/Machine Learning Modules/')  # Folder with Machine Learning Files
-import KNN as KNN   # Functions for K-Nearest Neighbors' Algorithm
+sys.path.append('./Helper Files/Machine Learning/')  # Folder with Machine Learning Files
+import machineLearningMain  # Class Header for All Machine Learning
 
 # --------------------------------------------------------------------------- #
 
@@ -72,47 +71,49 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------- #
     #    User Parameters to Edit (More Complex Edits are Inside the Files)   #
     # ---------------------------------------------------------------------- #
-
+    
     # General Data Collection Information (You Will Likely Not Edit These)
-    handSerialNum = '7593231313935131D162'  # Hand Arduino's Serial Number (port.serial_number)
-    emgSerialNum = '85735313333351E040A0'   # EMG Arduino's Serial Number (port.serial_number)
-    numDataPoints = 1000000  # The Number of Points to Stream into the EMG Arduino
-    moveDataFinger = 200   # The Number of Data Points to Analyze at a Time
-    numChannels = 4        # The Number of EMG Arduino Channels with EMG Signals Read
-    xWidth = 1000          # The Number of Data Points to Display to the User (Plot) at a Time
+    emgSerialNum = '85735313333351E040A0'    # Arduino Serial Number (port.serial_number) Collecting EMG Signals
+    handSerialNum = '7593231313935131D162'   # Arduino Serial Number for the Robotic Hand Control. Leave None if NOT Controlling the Hand
+    numDataPoints = 50000   # The Number of Points to Stream into the Arduino
+    numTimePoints = 3000    # The Number of Data Points to Display to the User at a Time; My beta-Test Used 2000 Points
+    moveDataFinger = 200    # The Number of NEW Data Points to Analyze at a Time; My Beta-Test Used 200 Points with Plotting (100 Without). This CAN Change How SOME Peaks are Found (be Careful)
+    samplingFreq = 800      # The Average Number of Points Steamed Into the Arduino Per Second; If NONE Given, Algorithm will Calculate Based on Initial Data
+    numChannels = 4         # The Number of Arduino Channels with EMG Signals Read in; My Beta-Test Used 4 Channels
+    numFeatures = 4         # The Number of Features to Extract/Save/Train on
+    # Specify the Type of Movements to Learn
+    gestureClasses = np.char.lower(["Up", "Down", "Left", "Right", "Grab", "Release"])  # Define Labels as Array
     
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
-    streamArduinoData = True  # Stream in Data from the Arduino and Analyze
+    streamArduinoData = False  # Stream in Data from the Arduino and Analyze; Input 'testModel' = True to Apply Learning
     trainModel = False         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
     
-    # User Option During the Run
-    saveInputData = False # Saves the Data Streamed in as 'saveExcelName'
-    seeFullPlot = True    # Graph the Peak Analysis IN ADDITION TO the Arduino Data
-    SaveModel = False     # Save the Machine Learning Model for Later Use
-        
+    # User Options During the Run: Any Number Can be True
+    plotStreamedData = True    # Graph the Data to Show Incoming Signals + Analysis
+    saveModel = False          # Save the Machine Learning Model for Later Use
+    saveData = False           # Saves the Data in 'readData.data' in an Excel Named 'saveExcelName' or map2D if Training
+    
+    # ---------------------------------------------------------------------- #
+    
     # Take Data from the Arduino and Save it as an Excel (For Later Use)
-    if saveInputData:
-        saveExcelName = "Samuel Solomon 2021-03-18.xlsx"  # The Name of the Saved File
-        saveDataFolder = "./Input Data/Full Training Data/"   # Data Folder to Save the Excel Data; MUST END IN '/'
-        handMovement = "Release"                          # Speficy the hand Movement You Will Perform
-        
-        sheetName = "Trial 1 - "  # If SheetName Already Exists, Excel 1 to Trial #
-        sheetName = sheetName + handMovement
+    if saveData:
+        saveExcelName = "Samuel Solomon 2021-10-06 Circles.xlsx"  # The Name of the Saved File
+        saveDataFolder = "../Output Data/EMG Data/"  # Data Folder to Save the Excel Data; MUST END IN '/'
+        # Speficy the eye Movement You Will Perform
+        currentMovement = "Up".lower() # Make Sure it is Lowercase
+        if currentMovement not in gestureClasses:
+            print("The Gesture", "'" + currentMovement + "'", "is Not in", gestureClasses)
     
-    # Define Labels as Array
-    movementOptions = np.array(["Right", "Left", "Up", "Down", "Grab", "Release"])
-    movementOptions = np.char.lower(movementOptions)
-    # Edge Case: User Defines a Movement that Does not Exist, Return Error
-    if saveInputData and handMovement.lower() not in movementOptions:
-        print("\nUser Defined an Unknown Hand Gesture")
-        print("The Gesture", "'" + handMovement.lower() + "'", "is Not in", movementOptions)
-        sys.exit()
-        
-    # Specify the ML Module
-    modelPath = "./Helper Files/Machine Learning Modules/Models/myModelKNNFull_SamArm.pkl"
-    MLModel = KNN.KNN(modelPath = modelPath, numClasses = len(movementOptions))    
-    
-    trainDataExcelFolder = "./Input Data/Full Training Data/"  # Path to the Training Data Folder; All .xlsx Data Used
+    # Specify Training Location
+    if trainModel:
+        trainDataExcelFolder = "../Input Data/Full Training Data/Lab Electrodes/Sam/May11/"  # Path to the Training Data Folder; All .xlsx Data Used
+
+    # Pick the Machine Learning Module to Use
+    modelType = "KNN"  # Machine Learning Options: NN, RF, LR, KNN, SVM
+    modelPath = "./Machine Learning Modules/Models/predictionModelKNNFull_SamArm1.pkl" # Path to Model (Creates New if it Doesn't Exist)
+    # Get the Machine Learning Module
+    performMachineLearning = machineLearningMain.predictionModelHead(modelType, modelPath, dataDim = numChannels, gestureClasses = gestureClasses)
+    predictionModel = performMachineLearning.predictionModel
 
     # ---------------------------------------------------------------------- #
     #                EMG Program (Should Not Have to Edit)                   #
@@ -133,13 +134,12 @@ if __name__ == "__main__":
             robotControl.setRoboParams()  # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
             robotControl.setRest()        # Sets the Rest Position to Current Start Position            
             robotControl.powerUp("", fancyStart = True) # If mode = 'fancy', begin there. Then go to Home Position
-    
-            # Stream in EMG Arduino Data and Perform Gesture Recognition
-            readData = streamData.arduinoRead(emgSerialNum, handSerialNum, xWidth, moveDataFinger, numChannels, movementOptions, guiApp = guiApp)
-            threading.Thread(target = readData.streamArduinoData, args = (numDataPoints, seeFullPlot, MLModel, robotControl), daemon=True).start()
             
- #           readData.guiApp.robotControl.userAction()
-
+            # Stream in EMG Arduino Data and Perform Gesture Recognition
+            arduinoRead = streamData.arduinoRead(emgSerialNum = emgSerialNum, handSerialNum = handSerialNum)
+            readData = streamData.emgArduinoRead(arduinoRead, numTimePoints, moveDataFinger, numChannels, samplingFreq, gestureClasses, plotStreamedData, guiApp = guiApp)
+            threading.Thread(target = readData.streamEMGData, args = (numDataPoints, predictionModel, robotControl), daemon=True).start()
+            
             # Start UI Popup
             guiApp.app.exec_()
             
@@ -148,35 +148,37 @@ if __name__ == "__main__":
             guiApp.resetButton()
             
             # Save the Data Streamed in (if Wanted)
-            if saveInputData:
-                saveInputs = excelData.saveExcel(numChannels)
-                saveInputs.saveData(readData.data, readData.xTopGrouping, readData.featureSetGrouping, saveDataFolder, saveExcelName, sheetName, handMovement)
+            if saveData:
+                # Format Sheet Name
+                sheetName = "Trial 1 - "  # If SheetName Already Exists, Increase Trial # by One
+                sheetName = sheetName + currentMovement
+                # Double Check to See if User Wants to Save the Data
+                verifiedSave = input("Are you Sure you Want to Save the Data (Y/N): ")
+                if verifiedSave.upper() == "Y":
+                    # Initialize Class to Save the Data and Save
+                    saveInputs = excelData.saveExcel(numChannels, numFeatures)
+                    saveInputs.saveData(readData.data, readData.featureList, saveDataFolder, saveExcelName, sheetName, currentMovement)
+                else:
+                    print("User Chose Not to Save the Data")
         # ------------------------- Train ML Model -------------------------- #
         elif trainModel:
-            # Read in Training Data/Labels
-            readData = excelData.readExcel(xWidth, moveDataFinger, numChannels, movementOptions)
-            signalData, signalLabels = readData.getTrainingData(trainDataExcelFolder, movementOptions, mode='Train')
+            # Create Portocol
+            emgProtocol = emgAnalysis.emgProtocol(numTimePoints, moveDataFinger, numChannels, samplingFreq, gestureClasses, plotStreamedData)
+            # Extract the Data
+            readData = excelData.readExcel(emgProtocol)
+            signalData, signalLabels = readData.getTrainingData(trainDataExcelFolder, numFeatures, gestureClasses, mode='Train')
             print("\nCollected Signal Data")
-            
-            # Split the Data Randomly into Training and Testing Data Sets
-            signalLabelsClass = [np.argmax(i) for i in signalLabels]
-            Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabelsClass, test_size=0.1, shuffle= True, stratify=signalLabels)
-        
-            # Train the Classifier (the Model) with the Training Data
-            MLModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels)
-            # Plot the Training Loss    
-            #MLModel.plotModel(signalData, signalLabelsClass)
-            
-            # Find the Class Data Distribution in the Total Training/Testing Set
-            classDistribution = collections.Counter(signalLabelsClass)
-            print("Class Distribution:", classDistribution)
-            print("Number of Data Points = ", len(classDistribution))
-
-            # Save the Classifier: if Desired
-            if SaveModel:
-                MLModel.saveModel(modelPath)
-            # ------------------------------------------------------------------- #
-            
+            # Train the Data on the Gestures
+            performMachineLearning.trainModel(signalData, signalLabels)
+            # Save Signals and Labels
+            if saveData and performMachineLearning.map2D:
+                saveInputs = excelData.saveExcel(numChannels, numFeatures)
+                saveExcelNameMap = Path(saveExcelName).stem + "_mapedData.xlsx" #"Signal Features with Predicted and True Labels New.xlsx"
+                saveInputs.saveLabeledPoints(performMachineLearning.map2D, signalLabels,  performMachineLearning.predictionModel.predictData(signalData), saveDataFolder, saveExcelNameMap, sheetName = "Signal Data and Labels")
+            # Save the Neural Network (The Weights of Each Edge)
+            if saveModel:
+                 performMachineLearning.predictionModel.saveModel(modelPath)
+        # ------------------------------------------------------------------- #
     # If Something Goes Wrong, Power Down Robot (Controlled)
     except Exception as e:
         exc_type, exc_obj, tb = sys.exc_info()
@@ -190,9 +192,6 @@ if __name__ == "__main__":
         time.sleep(5)    
         # Turn Off Robot
         robotControl.powerDown()
-    
-    
-
     # ---------------------------------------------------------------------- #
     # ---------------------------------------------------------------------- #
     
