@@ -101,7 +101,7 @@ if __name__ == "__main__":
 
     if trainModel or testModel:
         # Pick the Machine Learning Module to Use
-        modelType = "KNN"  # Machine Learning Options: NN, RF, LR, KNN, SVM
+        modelType = "RF"  # Machine Learning Options: NN, RF, LR, KNN, SVM
         modelPath = "./Machine Learning Modules/Models/predictionModelKNNFull_SamArm1.pkl" # Path to Model (Creates New if it Doesn't Exist)
         # Get the Machine Learning Module
         performMachineLearning = machineLearningMain.predictionModelHead(modelType, modelPath, dataDim = numChannels, gestureClasses = gestureClasses)
