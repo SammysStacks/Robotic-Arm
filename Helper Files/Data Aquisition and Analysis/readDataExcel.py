@@ -109,23 +109,26 @@ class readExcel():
         # Loop Through the Excel Worksheet to collect all the data
         for featureData in excelSheet.iter_rows(min_col=2+self.numChannels, min_row=dataStartRow, max_col=1+self.numChannels+numFeatures, max_row=excelSheet.max_row):
             
-            noFeatures = True
             # Extract Features from the Excel File
+            featureRow = []; numEmptyFeatures = 0
             for featureIndex, feature in enumerate(featureData):
-                if feature.value != None:
-                    noFeatures = False
-                featureList[featureIndex].append(float(feature.value or 0))
+                if feature.value == None:
+                    numEmptyFeatures += 1
+                featureRow.append(float(feature.value or 0))
                                 
             # If All Rows are Empty (Features are Blank), Then it is a New Feature Group
-            if noFeatures:
-                # Base Case: Two Adjacent Blank Rows -> No More Data to Collect
+            if numEmptyFeatures == self.numChannels:
+                # If There Was Two Consecutive Empty Rows, There are No More Features
                 if len(featureList[0]) == 0:
                     break
                 # Collect Features in Current Group
-                Training_Data.append(np.mean(featureList, axis=1))
-                Training_Labels.append(featureLabelIndexArray)
+                Training_Data.append(list(np.mean(featureList, axis=1)))
+                Training_Labels.append(featureLabelIndexArray[0])
                 # Reset Group Holder
-                featureList = [[] for _ in range(numFeatures)]            
+                featureList = [[] for _ in range(numFeatures)]
+            else:
+                for featureIndex, feature in enumerate(featureRow):
+                    featureList[featureIndex].append(feature)           
                     
         print("\tCollected Training Data for:", excelSheet.title)
         return Training_Data, Training_Labels
@@ -173,7 +176,7 @@ class readExcel():
                         # Overwrite Excel Sheet with new Analysis
                         saveExcelData.saveData(self.analysisProtocol.data, self.analysisProtocol.featureList, trainingDataExcelFolder, excelFile, sheetName=excelSheet, handMovement=handMovement, WB=WB)
                         
-        return Training_Data, Training_Labels
+        return np.array(Training_Data), np.array(Training_Labels)
 
 
 

@@ -59,32 +59,28 @@ class predictionModelHead:
     def trainModel(self, signalData, signalLabels):
         # Split the Data into Training and Validation Sets
         Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabels, test_size=0.2, shuffle= True, stratify=signalLabels)
-        signalLabelsClass = [np.argmax(i) for i in signalLabels]
         
         if self.modelType in ['NN', 'RF', 'LR', 'KNN', 'SVM']:
-            # Format Labels into 1D Array (Needed for KNN Setup)
-            Training_LabelsClass = [np.argmax(i) for i in Training_Labels]
-            Testing_LabelsClass= [np.argmax(i) for i in Testing_Labels]
             # Train the NN with the Training Data
-            self.predictionModel.trainModel(Training_Data, Training_LabelsClass, Testing_Data, Testing_LabelsClass)
+            self.predictionModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels)
             # Plot the training loss    
-            self.map2D = self.predictionModel.mapTo2DPlot(signalData, signalLabelsClass)
-            self.predictionModel.accuracyDistributionPlot(signalData, signalLabelsClass,  self.predictionModel.predictData(signalData), self.gestureClasses)
-            self.predictionModel.plotModel(signalData, signalLabelsClass)
-            self.predictionModel.plot3DLabels(signalData, signalLabelsClass)
-            self.predictionModel.plot3DLabelsMovie(signalData, np.array(signalLabelsClass))
+            self.map2D = self.predictionModel.mapTo2DPlot(signalData, signalLabels)
+            self.predictionModel.accuracyDistributionPlot(signalData, signalLabels,  self.predictionModel.predictData(signalData), self.gestureClasses)
+            self.predictionModel.plotModel(signalData, signalLabels)
+            self.predictionModel.plot3DLabels(signalData, signalLabels)
+            self.predictionModel.plot3DLabelsMovie(signalData, np.array(signalLabels))
 
         elif self.modelType == "NN":
             # Train the NN with the Training Data
             self.predictionModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels, 500, seeTrainingSteps = False)
             # Plot the training loss    
-            self.predictionModel.plotModel(signalData, signalLabelsClass)
-            self.predictionModel.plot3DLabels(signalData, signalLabelsClass)
-            self.predictionModel.accuracyDistributionPlot(signalData, signalLabelsClass,  self.predictionModel.predictData(signalData), self.gestureClasses)
+            self.predictionModel.plotModel(signalData, signalLabels)
+            self.predictionModel.plot3DLabels(signalData, signalLabels)
+            self.predictionModel.accuracyDistributionPlot(signalData, signalLabels,  self.predictionModel.predictData(signalData), self.gestureClasses)
             self.predictionModel.plotStats()
 
         # Find the Data Distribution
-        classDistribution = collections.Counter(signalLabelsClass)
+        classDistribution = collections.Counter(signalLabels)
         print("Class Distribution:", classDistribution)
         print("Number of Data Points = ", len(classDistribution))
         

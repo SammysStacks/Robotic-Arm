@@ -16,7 +16,9 @@
     
     --------------------------------------------------------------------------
     
+    Note: Not ALL of the Modules are Required for Every Run (Some are ONYL if Plotting)
     Modules to Import Before Running the Program (Some May be Missing):
+        % conda install -c conda-forge ffmpeg
         $ conda install scikit-learn
         $ conda install matplotlib
         $ conda install tensorflow
@@ -25,6 +27,7 @@
         $ conda install joblib
         $ conda install numpy
         $ conda install keras
+        
         
     --------------------------------------------------------------------------
 """
@@ -65,16 +68,16 @@ if __name__ == "__main__":
     gestureClasses = np.char.lower(["Forwards", "Back", "Left", "Right", "Rotate Left", "Rotate Right"])  # Define Labels as Array
 
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
-    streamArduinoData = True  # Stream in Data from the Arduino and Analyze; Input 'testModel' = True to Apply Learning
+    streamArduinoData = False  # Stream in Data from the Arduino and Analyze; Input 'testModel' = True to Apply Learning
     readDataFromExcel = False   # Analyze Data from Excel File called 'testDataExcelFile' on Sheet Number 'testSheetNum'
-    reAnalyzePeaks = False     # Read in ALL Data Under 'trainDataExcelFolder', and Reanalyze Peaks (THIS EDITS EXCEL DATA IN PLACE!; DONT STOP PROGRAM MIDWAY)
-    trainModel = False         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
+    reAnalyzePeaks = False     # Read in ALL Data Under 'trainingDataExcelFolder', and Reanalyze Peaks (THIS EDITS EXCEL DATA IN PLACE!; DONT STOP PROGRAM MIDWAY)
+    trainModel = True         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
     
     # User Options During the Run: Any Number Can be True
     plotStreamedData = False    # Graph the Data to Show Incoming Signals + Analysis
     saveModel = False          # Save the Machine Learning Model for Later Use
     testModel = False          # Apply the Learning Algorithm to Decode the Signals
-    saveData = True           # Saves the Data in 'readData.data' in an Excel Named 'saveExcelName' or map2D if Training
+    saveData = False           # Saves the Data in 'readData.data' in an Excel Named 'saveExcelName' or map2D if Training
     
     # ---------------------------------------------------------------------- #
     
@@ -94,7 +97,7 @@ if __name__ == "__main__":
     
     # Use Previously Processed Data that was Saved; Extract Features for Training
     if reAnalyzePeaks or trainModel:
-        trainDataExcelFolder = "../Output Data/EMG Data/Neck/"  # Path to the Training Data Folder; All .xlsx Data Used
+        trainingDataExcelFolder = "../Output Data/EMG Data/Neck/"  # Path to the Training Data Folder; All .xlsx Data Used
 
     if trainModel or testModel:
         # Pick the Machine Learning Module to Use
@@ -126,13 +129,14 @@ if __name__ == "__main__":
     # Redo Peak Analysis
     elif reAnalyzePeaks:
         readData = excelData.readExcel(emgProtocol)
-        readData.getTrainingData(trainDataExcelFolder, numFeatures, gestureClasses, mode='reAnalyze')
+        readData.getTrainingData(trainingDataExcelFolder, numFeatures, gestureClasses, mode='reAnalyze')
     # Take Preprocessed (Saved) Features from Excel Sheet
     elif trainModel:
         # Extract the Data
         readData = excelData.readExcel(emgProtocol)
-        signalData, signalLabels = readData.getTrainingData(trainDataExcelFolder, numFeatures, gestureClasses, mode='Train')
+        signalData, signalLabels = readData.getTrainingData(trainingDataExcelFolder, numFeatures, gestureClasses, mode='Train')
         print("\nCollected Signal Data")
+
         # Train the Data on the Gestures
         performMachineLearning.trainModel(signalData, signalLabels)
         # Save Signals and Labels
