@@ -42,7 +42,7 @@ class emgProtocol:
         self.samplingFreq = samplingFreq
         self.Rp = 0.1; self.Rs = 30;
         # Root Mean Squared (RMS) Parameters
-        self.rmsWindow = 250; self.stepSize = 8;
+        self.rmsWindow = 400; self.stepSize = 15;
         
         # Data Collection Parameters
         self.highPassBuffer = max(self.rmsWindow + self.stepSize, 5000)  # Must be > rmsWindow + stepSize
@@ -233,7 +233,7 @@ class emgProtocol:
             
             # ---------------------- Feature Analysis  ---------------------- #
             # Extract Features from the Good Peaks 
-            newFeatures = self.extractFeatures(bufferRMSData, peakInds)
+            newFeatures = self.extractFeatures(bufferRMSDataX, bufferRMSData, peakInds)
             
             # Keep Track of the Features
             featureHolder.append(newFeatures)
@@ -268,7 +268,7 @@ class emgProtocol:
             # If the Peak is Far from the Last Group, Make a New Group
             if nextPeak - self.highestAnalyzedGroupStartX > self.pointsPerGroupRMS:
                 # Check to See if you Need More Data to Establish a Group
-                if nextPeak > self.timePoints[-1] - self.pointsPerGroupRMS:
+                if nextPeak > xDataRMS[-1] - self.pointsPerGroupRMS:
                     break
                 # Update Group Holders
                 for channelInd in range(self.numChannels):
@@ -433,7 +433,9 @@ class emgProtocol:
 
     def findPeaks(self, xData, yData, channelIndex):
         # Find New Peak Indices and Last Recorded Peak's xLocation
-        peakIndices = scipy.signal.find_peaks(yData, prominence=.03, height=0.01, width=15, rel_height=0.5, distance = 100)[0]
+        #peakIndices = scipy.signal.find_peaks(yData, prominence=.03, height=0.01, width=15, rel_height=0.5, distance = 100)[0]
+        # For Neck
+        peakIndices = scipy.signal.find_peaks(yData, prominence=.02, height=0.01, width=10, distance = 50)[0]
         
         # Find Where the New Peaks Begin
         xPeaksNew = []; yPeaksNew = []; peakInds = []
@@ -469,21 +471,21 @@ class emgProtocol:
         # If Your Binary Search is Too Small, Reduce it
         return self.findNearbyMinimum(data, xPointer, math.floor(binarySearchWindow/2), maxPointsSearch)
                 
-    def extractFeatures(self, peakAnalysisData, peakInds):
+    def extractFeatures(self, xData, yData, peakInds):
         peakFeatures = []
         for xPointer in peakInds:
             peakFeatures.append([])
             # Take Average of the Signal (Only Left Side As I Want to Decipher Motor Intention as Fast as I Can; Plus the Signal is generally Symmetric)
-            leftBaselineIndex = self.findNearbyMinimum(peakAnalysisData, xPointer, binarySearchWindow = -25, maxPointsSearch = 1000)
-            peakAverage = np.mean(peakAnalysisData[leftBaselineIndex:xPointer+1])
+            leftBaselineIndex = self.findNearbyMinimum(yData, xPointer, binarySearchWindow = -25, maxPointsSearch = 1000)
+            peakAverage = np.mean(yData[leftBaselineIndex:xPointer+1])
             peakFeatures[-1].append(peakAverage)
             # Minimize Group Seperation
             if not self.pointsPerGroupRMS:
-                self.pointsPerGroupRMS = (xPointer - leftBaselineIndex)
-                print(self.pointsPerGroupRMS)
-        #    plt.plot(peakAnalysisData)
-        #    plt.plot(xPointer, peakAnalysisData[xPointer], 'o')
-        #    plt.plot(leftBaselineIndex, peakAnalysisData[leftBaselineIndex], 'o')
+                self.pointsPerGroupRMS = int((xData[xPointer] - xData[leftBaselineIndex])/2)
+                print("PEAK Width", self.pointsPerGroupRMS)
+        #    plt.plot(yData)
+        #    plt.plot(xPointer, yData[xPointer], 'o')
+        #    plt.plot(leftBaselineIndex, yData[leftBaselineIndex], 'o')
         #    plt.show()
         #    print(leftBaselineIndex, xPointer)
         # Return Features

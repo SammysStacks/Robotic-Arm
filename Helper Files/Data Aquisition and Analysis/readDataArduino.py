@@ -17,8 +17,6 @@ import serial
 import serial.tools.list_ports
 # Import Bioelectric Analysis Files
 from emgAnalysis import emgProtocol
-from eogAnalysis import eogProtocol
-from ppgAnalysis import ppgProtocol
 
 
 # --------------------------------------------------------------------------- #
@@ -279,8 +277,8 @@ class emgArduinoRead(emgProtocol):
                     self.analyzeData(dataFinger, self.plotStreamedData, predictionModel, actionControl)
                     dataFinger += self.moveDataFinger
             # At the End, Analyze Any Data Left
-            if dataFinger < len(self.analysisProtocol.data["timePoints"]):
-                self.analysisProtocol.analyzeData(dataFinger, self.plotStreamedData, predictionModel, actionControl)
+            if dataFinger < len(self.data["timePoints"]):
+                self.analyzeData(dataFinger, self.plotStreamedData, predictionModel, actionControl)
 
         finally:
             self.emgArduino.close()
