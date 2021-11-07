@@ -14,6 +14,8 @@ import joblib
 import sys
 import os
 from sklearn.model_selection import train_test_split
+from sklearn.manifold import MDS
+from sklearn.preprocessing import MinMaxScaler
 
 
 sys.path.append('./Data Aquisition and Analysis/')  # Folder with Machine Learning Files
@@ -89,6 +91,35 @@ class SVM:
         fig.savefig(saveFolder + name + ".png", dpi=200, bbox_inches='tight')
         plt.show() # Must be the Last Line
         
+    def mapTo2DPlot(self, signalData, signalLabels, saveFolder = "../Output Data/", name = "Channel Map"):
+        # Plot and Save
+        fig = plt.figure()
+        fig.set_size_inches(15,12)
+        
+        # Scatter Plot
+        #plt.scatter(signalData[:, 0]-signalData[:, 1] + signalData[:, 2]-signalData[:, 3], signalData[:, 0]-signalData[:, 2] + signalData[:, 1]-signalData[:, 3], c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', 6), s = 130, marker='.', edgecolors='k')        
+        #plt.scatter(signalData[:, 0]**2-signalData[:, 1]**2 + signalData[:, 2]**2-signalData[:, 3]**2, signalData[:, 0]**2-signalData[:, 2]**2 + signalData[:, 1]**2-signalData[:, 3]**2, c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', 6), s = 130, marker='.', edgecolors='k')
+        
+        scaler = MinMaxScaler()
+        X_scaled = scaler.fit_transform(signalData, signalLabels)
+        
+        mds = MDS(n_components=2,random_state=0, n_init = 4)
+        X_2d = mds.fit_transform(X_scaled)
+                
+        figMap = plt.scatter(X_2d[:,0], X_2d[:,1], c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', 6), s = 130, marker='.', edgecolors='k')        
+        
+        # Figure Aesthetics
+        fig.colorbar(figMap, ticks=range(6), label='digit value')
+        figMap.set_clim(-0.5, 5.5)
+        plt.title('Channel Feature Map');
+        #plt.xlabel("Channel 1+2")
+        #plt.ylabel("Channel 3+4")
+        #fig.tight_layout()
+        fig.savefig(saveFolder + name + ".png", dpi=200, bbox_inches='tight')
+        plt.show() # Must be the Last Line
+        
+        return X_2d
+        
     def accuracyDistributionPlot(self, signalData, signalLabelsTrue, signalLabelsML, movementOptions, saveFolder = "../Output Data/", name = "Accuracy Distribution"):
         
         # Calculate the Accuracy Matrix
@@ -121,6 +152,55 @@ class SVM:
         fig.tight_layout()
         plt.savefig(saveFolder + name + ".png", dpi=150, bbox_inches='tight')
         plt.show()
+        
+    def plot3DLabelsMovie(self, signalData, signalLabels, saveFolder = "../Output Data/", name = "Channel Feature Distribution Movie"):
+        # Plot and Save
+        fig = plt.figure()
+        #fig.set_size_inches(15,15,10)
+        ax = plt.axes(projection='3d')
+        
+        # Initialize Relevant Channel 4 Range
+        errorPoint = 0.01; # Width of Channel 4's Values
+        channel4Vals = np.arange(min(signalData[:, 3]), max(signalData[:, 3]), 2*errorPoint)
+        
+        # Initialize Movie Writer for Plots
+        FFMpegWriter = manimation.writers['ffmpeg']
+        metadata = dict(title=name, artist='Matplotlib', comment='Movie support!')
+        writer = FFMpegWriter(fps=2, metadata=metadata)
+        
+        with writer.saving(fig, saveFolder + name + ".mp4", 300):
+            for channel4Val in channel4Vals:
+                channelPoints1 = signalData[:, 0][abs(signalData[:, 3] - channel4Val) < errorPoint]
+                channelPoints2 = signalData[:, 1][abs(signalData[:, 3] - channel4Val) < errorPoint]
+                channelPoints3 = signalData[:, 2][abs(signalData[:, 3] - channel4Val) < errorPoint]
+                currentLabels = signalLabels[abs(signalData[:, 3] - channel4Val) < errorPoint]
+                
+                if len(currentLabels) != 0:
+                    # Scatter Plot
+                    figMap = ax.scatter3D(channelPoints1, channelPoints2, channelPoints3, "o", c = currentLabels, cmap = plt.cm.get_cmap('cubehelix', 6), s = 50, edgecolors='k')
+        
+                    ax.set_title('Channel Feature Distribution; Channel 4 = ' + str(channel4Val) + " ± " + str(errorPoint));
+                    ax.set_xlabel("Channel 1")
+                    ax.set_ylabel("Channel 2")
+                    ax.set_zlabel("Channel 3")
+                    ax.yaxis._axinfo['label']['space_factor'] = 20
+                    
+                    ax.set_xlim3d(0, max(signalData[:, 0]))
+                    ax.set_ylim3d(0, max(signalData[:, 1]))
+                    ax.set_zlim3d(0, max(signalData[:, 2]))
+                    
+                    # Figure Aesthetics
+                    cb = fig.colorbar(figMap, ticks=range(6), label='digit value')
+                    plt.rcParams['figure.dpi'] = 300
+                    figMap.set_clim(-0.5, 5.5)
+                    
+                    # Write to Video
+                    writer.grab_frame()
+                    # Clear Previous Frame
+                    plt.cla()
+                    cb.remove()
+                
+        plt.show() # Must be the Last Line
     
     def plotModel(self, signalData, signalLabels):
         Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabels, test_size=0.2, shuffle= True, stratify=signalLabels)
@@ -162,7 +242,7 @@ class SVM:
             #space between plots
             plt.subplots_adjust(wspace=0.4, hspace=0.4)
             
-            with writer.saving(fig, "./Machine Learning Modules/ML Videos/SVM_" + clf.kernel + ".mp4", 300):
+            with writer.saving(fig, "./Machine Learning/ML Videos/SVM_" + clf.kernel + ".mp4", 300):
                 for setPointX3 in channel3Vals:
             
                     x3 = np.ones(np.shape(xx.ravel())[0])*setPointX3

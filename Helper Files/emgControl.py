@@ -59,7 +59,7 @@ if __name__ == "__main__":
     handSerialNum = None   # Arduino Serial Number for the Robotic Hand Control. Leave None if NOT Controlling the Hand
     numDataPoints = 15000   # The Number of Points to Stream into the Arduino
     numTimePoints = 3000    # The Number of Data Points to Display to the User at a Time; My beta-Test Used 2000 Points
-    moveDataFinger = 200    # The Number of NEW Data Points to Analyze at a Time; My Beta-Test Used 200 Points with Plotting (100 Without). This CAN Change How SOME Peaks are Found (be Careful)
+    moveDataFinger = 2000    # The Number of NEW Data Points to Analyze at a Time; My Beta-Test Used 200 Points with Plotting (100 Without). This CAN Change How SOME Peaks are Found (be Careful)
     samplingFreq = 800     # The Average Number of Points Steamed Into the Arduino Per Second; If NONE Given, Algorithm will Calculate Based on Initial Data
     numChannels = 4         # The Number of Arduino Channels with EMG Signals Read in; My Beta-Test Used 4 Channels
     numFeatures = 4         # The Number of Features to Extract/Save/Train on
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     trainModel = True         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
     
     # User Options During the Run: Any Number Can be True
-    plotStreamedData = False    # Graph the Data to Show Incoming Signals + Analysis
+    plotStreamedData = True    # Graph the Data to Show Incoming Signals + Analysis
     saveModel = False          # Save the Machine Learning Model for Later Use
     testModel = False          # Apply the Learning Algorithm to Decode the Signals
     saveData = False           # Saves the Data in 'readData.data' in an Excel Named 'saveExcelName' or map2D if Training
@@ -92,7 +92,7 @@ if __name__ == "__main__":
             
     # Instead of Arduino Data, Use Test Data from Excel File
     if readDataFromExcel:
-        testDataExcelFile = "../Input Data/EMG Data/Samuel Solomon (Pure; Robot Computer) 2021-03-24.xlsx" # Path to the Test Data
+        testDataExcelFile = "../Output Data/EMG Data/Neck/Samuel Solomon 2021-11-05 Neck Test.xlsx" # Path to the Test Data
         testSheetNum = 0   # The Sheet/Tab Order (Zeroth/First/Second/Third) on the Bottom of the Excel Document
     
     # Use Previously Processed Data that was Saved; Extract Features for Training
@@ -101,8 +101,8 @@ if __name__ == "__main__":
 
     if trainModel or testModel:
         # Pick the Machine Learning Module to Use
-        modelType = "RF"  # Machine Learning Options: NN, RF, LR, KNN, SVM
-        modelPath = "./Machine Learning Modules/Models/predictionModelKNNFull_SamArm1.pkl" # Path to Model (Creates New if it Doesn't Exist)
+        modelType = "NN"  # Machine Learning Options: NN, RF, LR, KNN, SVM
+        modelPath = "./Machine Learning/Models/predictionModelKNNFull_SamArm1.pkl" # Path to Model (Creates New if it Doesn't Exist)
         # Get the Machine Learning Module
         performMachineLearning = machineLearningMain.predictionModelHead(modelType, modelPath, dataDim = numChannels, gestureClasses = gestureClasses)
         predictionModel = performMachineLearning.predictionModel

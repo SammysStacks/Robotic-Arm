@@ -74,10 +74,10 @@ class randomForest:
         print(scoreType, self.model.score(signalData, signalLabels))
         
         # Evaluate the model
-        cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=5, random_state=1)
-        n_scores = cross_val_score(self.model, signalData, signalLabels, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
-        # report performance
-        print('Cross-Validation Accuracy: %.3f (%.3f)' % (np.mean(n_scores), np.std(n_scores)))
+    #    cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=5, random_state=1)
+    #    n_scores = cross_val_score(self.model, signalData, signalLabels, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
+    #    # report performance
+    #    print('Cross-Validation Accuracy: %.3f (%.3f)' % (np.mean(n_scores), np.std(n_scores)))
 
 
     
@@ -85,8 +85,8 @@ class randomForest:
         # Predict Label based on new Data
         return self.model.predict(New_Data)
         
-    def accuracyDistributionPlot(self, signalData, trueLabels, predicatedLabels, signalLabelsTitles, saveFolder = "./Output Data/Machine Learning Results/", name = "Accuracy Distribution"):
-        
+    def accuracyDistributionPlot(self, signalData, trueLabels, predicatedLabels, signalLabelsTitles, saveFolder = "../Output Data/Machine Learning Results/", name = "Accuracy Distribution"):
+
         # Calculate the Accuracy Matrix
         accMat = np.zeros((len(signalLabelsTitles), len(signalLabelsTitles)))
         for ind, channelFeatures in enumerate(signalData):
@@ -115,6 +115,7 @@ class randomForest:
                 
         # Format, save, and show
         fig.tight_layout()
+        os.makedirs(saveFolder, exist_ok=True)
         plt.savefig(saveFolder + name + ".png", dpi=300, bbox_inches='tight')
         plt.show()
         

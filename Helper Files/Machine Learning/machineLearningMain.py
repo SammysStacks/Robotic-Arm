@@ -57,10 +57,11 @@ class predictionModelHead:
         return predictionModel
     
     def trainModel(self, signalData, signalLabels):
+        signalData = np.array(signalData); signalLabels = np.array(signalLabels)
         # Split the Data into Training and Validation Sets
-        Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabels, test_size=0.2, shuffle= True, stratify=signalLabels)
+        Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabels, test_size=0.4, shuffle= True, stratify=signalLabels)
         
-        if self.modelType in ['NN', 'RF', 'LR', 'KNN', 'SVM']:
+        if self.modelType in ['RF', 'LR', 'KNN', 'SVM']:
             # Train the NN with the Training Data
             self.predictionModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels)
             # Plot the training loss    
@@ -71,8 +72,22 @@ class predictionModelHead:
             self.predictionModel.plot3DLabelsMovie(signalData, np.array(signalLabels))
 
         elif self.modelType == "NN":
+            Training_LabelsArray = []; maxLabel = max(Training_Labels) + 1
+            for label in Training_Labels:
+                newLabel = np.zeros(maxLabel).astype(int)
+                newLabel[label] = 1
+                Training_LabelsArray.append(list(newLabel))
+            Training_LabelsArray  = np.array(Training_LabelsArray).astype(int)
+
+            Testing_LabelsArray = []; maxLabel = max(Training_Labels) + 1
+            for label in Testing_Labels:
+                newLabel = np.zeros(maxLabel).astype(int)
+                newLabel[label] = 1
+                Testing_LabelsArray.append(list(newLabel))
+            Testing_LabelsArray  = np.array(Testing_LabelsArray).astype(int)
+                
             # Train the NN with the Training Data
-            self.predictionModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels, 500, seeTrainingSteps = False)
+            self.predictionModel.trainModel(Training_Data, Training_Labels, Testing_Data, Training_Labels, 500, seeTrainingSteps = False)
             # Plot the training loss    
             self.predictionModel.plotModel(signalData, signalLabels)
             self.predictionModel.plot3DLabels(signalData, signalLabels)

@@ -30,7 +30,7 @@ class readExcel():
         self.moveDataFinger = analysisProtocol.moveDataFinger
         self.numTimePoints = analysisProtocol.numTimePoints
         
-    def streamExcelData(self, testDataExcelFile, plotStreamedData = False, testSheetNum = 0, predictionModel=None, actionControl=None, analyzeSheet = None):
+    def streamExcelData(self, testDataExcelFile, plotStreamedData = False, testSheetNum = 0, predictionModel = None, actionControl=None, analyzeSheet = None):
         """
         Extracts Biolectric Data from Excel Document (.xlsx). Data can be in any
         worksheet, which the user can specify using 'testSheetNum'.
@@ -81,6 +81,7 @@ class readExcel():
             while pointNum - dataFinger >= self.numTimePoints:
                 self.analysisProtocol.analyzeData(dataFinger, plotStreamedData, predictionModel, actionControl = actionControl)
                 dataFinger += self.moveDataFinger
+                
         # At the End, Analyze Any Data Left
         if dataFinger < len(self.analysisProtocol.data["timePoints"]):
             self.analysisProtocol.analyzeData(dataFinger, plotStreamedData, predictionModel, actionControl = actionControl)
@@ -176,7 +177,7 @@ class readExcel():
                         # Overwrite Excel Sheet with new Analysis
                         saveExcelData.saveData(self.analysisProtocol.data, self.analysisProtocol.featureList, trainingDataExcelFolder, excelFile, sheetName=excelSheet, handMovement=handMovement, WB=WB)
                         
-        return np.array(Training_Data), np.array(Training_Labels)
+        return Training_Data, Training_Labels
 
 
 
@@ -215,7 +216,7 @@ class saveExcel:
         elif WB:
             print("\tOverWriting Excel File:", excel_file)
             WB_worksheet = WB.create_sheet(sheetName.title)
-            print("\tSaving Sheet as", WB_worksheet.title)
+            print("\tSaving Sheet as", WB_worksheet.title, "\n")
         # Loading in Previous Excel File, Creating New Sheet, Editing Trial Number in SheetName
         else:
             print("Excel File Already Exists. Loading File")
@@ -305,7 +306,7 @@ class saveExcel:
         
         # If the File is Not Present: Create The Excel File
         if not os.path.isfile(excel_file):
-            print("\nSaving the Data as New Excel Workbook")
+            print("\nSaving the Data as New Excel Workbook", "\n")
             # Make Excel WorkBook
             WB = xl.Workbook()
             WB_worksheet = WB.active 
@@ -315,7 +316,7 @@ class saveExcel:
             print("Excel File Already Exists. Loading File")
             WB = xl.load_workbook(excel_file, read_only=False)
             WB_worksheet = WB.create_sheet(sheetName)
-            print("Saving Sheet as", sheetName)
+            print("Saving Sheet as", sheetName, "\n")
         
         header = ['Feature Number ' + str(featureNum) for featureNum in range(1, 1+self.numFeatures)]
         header.extend(['Signal Labels True', 'Signal Labels Predicted'])
