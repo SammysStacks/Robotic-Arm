@@ -58,8 +58,8 @@ if __name__ == "__main__":
     emgSerialNum = '85735313333351E040A0'    # Arduino Serial Number (port.serial_number) Collecting EMG Signals
     handSerialNum = None   # Arduino Serial Number for the Robotic Hand Control. Leave None if NOT Controlling the Hand
     numDataPoints = 15000   # The Number of Points to Stream into the Arduino
-    numTimePoints = 3000    # The Number of Data Points to Display to the User at a Time; My beta-Test Used 2000 Points
-    moveDataFinger = 2000    # The Number of NEW Data Points to Analyze at a Time; My Beta-Test Used 200 Points with Plotting (100 Without). This CAN Change How SOME Peaks are Found (be Careful)
+    numTimePoints = 5000    # The Number of Data Points to Display to the User at a Time; My beta-Test Used 2000 Points
+    moveDataFinger = 500    # The Number of NEW Data Points to Analyze at a Time; My Beta-Test Used 200 Points with Plotting (100 Without). This CAN Change How SOME Peaks are Found (be Careful)
     samplingFreq = 800     # The Average Number of Points Steamed Into the Arduino Per Second; If NONE Given, Algorithm will Calculate Based on Initial Data
     numChannels = 4         # The Number of Arduino Channels with EMG Signals Read in; My Beta-Test Used 4 Channels
     numFeatures = 4         # The Number of Features to Extract/Save/Train on
@@ -69,14 +69,14 @@ if __name__ == "__main__":
 
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
     streamArduinoData = False  # Stream in Data from the Arduino and Analyze; Input 'testModel' = True to Apply Learning
-    readDataFromExcel = False   # Analyze Data from Excel File called 'testDataExcelFile' on Sheet Number 'testSheetNum'
+    readDataFromExcel = True   # Analyze Data from Excel File called 'testDataExcelFile' on Sheet Number 'testSheetNum'
     reAnalyzePeaks = False     # Read in ALL Data Under 'trainingDataExcelFolder', and Reanalyze Peaks (THIS EDITS EXCEL DATA IN PLACE!; DONT STOP PROGRAM MIDWAY)
-    trainModel = True         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
+    trainModel = False         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
     
     # User Options During the Run: Any Number Can be True
     plotStreamedData = True    # Graph the Data to Show Incoming Signals + Analysis
     saveModel = False          # Save the Machine Learning Model for Later Use
-    testModel = False          # Apply the Learning Algorithm to Decode the Signals
+    testModel = True          # Apply the Learning Algorithm to Decode the Signals
     saveData = False           # Saves the Data in 'readData.data' in an Excel Named 'saveExcelName' or map2D if Training
     
     # ---------------------------------------------------------------------- #
@@ -92,7 +92,7 @@ if __name__ == "__main__":
             
     # Instead of Arduino Data, Use Test Data from Excel File
     if readDataFromExcel:
-        testDataExcelFile = "../Output Data/EMG Data/Neck/Samuel Solomon 2021-11-05 Neck Test.xlsx" # Path to the Test Data
+        testDataExcelFile = "../Input Data/Full Training Data/Industry Electrodes/Samuel Solomon (Pure) 2021-03-17.xlsx" # Path to the Test Data
         testSheetNum = 0   # The Sheet/Tab Order (Zeroth/First/Second/Third) on the Bottom of the Excel Document
     
     # Use Previously Processed Data that was Saved; Extract Features for Training

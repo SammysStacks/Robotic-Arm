@@ -47,7 +47,7 @@ class emgProtocol:
         # Data Collection Parameters
         self.highPassBuffer = max(self.rmsWindow + self.stepSize, 5000)  # Must be > rmsWindow + stepSize
         self.peakDetectionBuffer = 2000  # Buffer in Case Peaks are Only Half Formed at Edges
-        self.numPointsRMS = 4000         # Number of Root Mean Squared Data (After HPF) to Plot
+        self.numPointsRMS = 400         # Number of Root Mean Squared Data (After HPF) to Plot
         # Peak Grouping Threshold
         self.maxSecondsPerGroup = 0.5    # Seperation in Time that Defines a New Group
         
@@ -71,8 +71,7 @@ class emgProtocol:
         self.Wp = 2*math.pi*self.f1/self.samplingFreq
         self.Ws = 2*math.pi*self.f3/self.samplingFreq
         # Calculate Number of Streamed Points Per RMS Point
-        secondsPerPointRMS = self.stepSize/self.samplingFreq   # Seconds per Delta RMS Point
-        self.pointsPerGroupRMS = None #self.maxSecondsPerGroup/secondsPerPointRMS  # The Number of Points for 1 Group
+        self.secondsPerPointRMS = self.stepSize/self.samplingFreq   # Seconds per Delta RMS Point
 
     def resetGlobalVariables(self):
         # Data to Read in
@@ -83,13 +82,15 @@ class emgProtocol:
             self.previousDataRMS[channelIndex] = []
         
         # Reset Mutable Variables
-        self.pointsPerGroupRMS = None
+        self.pointsPerGroupRMS = None # The Number of Points for 1 Group
         self.lastAnalyzedGroup = -1
         self.highestAnalyzedGroupStartX = 0
         self.xPeaksList = [[] for _ in range(self.numChannels)]
         self.yPeaksList = [[] for _ in range(self.numChannels)]
         self.badPeakInd = [[] for _ in range(self.numChannels)]
         self.featureList = [[] for _ in range(self.numChannels)]
+        
+        self.timeDelayIndices = [[] for _ in range(self.numChannels)]
                 
         # Close Any Opened Plots
         if self.plotStreamedData:
@@ -150,12 +151,13 @@ class emgProtocol:
         # Create the Data Plots
         self.filteredBioelectricPlotAxes = [] 
         self.filteredBioelectricDataPlots = []
+        self.timeDelayPlots = []
         for channelIndex in range(self.numChannels):
             # Create Plot Axes
             self.filteredBioelectricPlotAxes.append(axes[channelIndex, 1])
             # Plot Flitered Peaks
+            self.timeDelayPlots.append(self.filteredBioelectricPlotAxes[channelIndex].plot([], [], '-', c="blue", linewidth=2, alpha = 0.65)[0])
             self.filteredBioelectricDataPlots.append(self.filteredBioelectricPlotAxes[channelIndex].plot([], [], '-', c="tab:red", linewidth=1, alpha = 0.65)[0])
-
 
             # Set Figure Limits
             self.filteredBioelectricPlotAxes[channelIndex].set_ylim(yLimLow, yLimitHighFiltered)
@@ -172,7 +174,7 @@ class emgProtocol:
     
     def analyzeData(self, dataFinger, plotStreamedData = False, predictionModel = None, actionControl=None):  
         
-        xPeaksHolder = []; yPeaksHolder = []; featureHolder = [];
+        xPeaksHolder = []; yPeaksHolder = []; featureHolder = []; baselineHolder = []
         # Get X Data: Shared Axis for All Channels
         self.timePoints = self.data['timePoints'][dataFinger:dataFinger + self.numTimePoints]
         # Add incoming Data to Each Respective Channel's Plot
@@ -200,9 +202,11 @@ class emgProtocol:
     
             # --------------------- Root Mean Squared ----------------------- #
             # Calculated the RMS and Add the Data to the Stored Buffer from the Last Round
-            dataRMS = self.RMSFilter(filteredData, self.previousDataRMS[channelIndex], self.rmsWindow, self.stepSize)            
-            xDataRMS = np.arange(max(len(dataRMS) - self.numPointsRMS, 0), len(dataRMS), 1)
-
+            dataRMS = self.RMSFilter(filteredData, self.previousDataRMS[channelIndex], self.rmsWindow, self.stepSize)[-self.numPointsRMS:]
+            totalPointsRMS = max(1 + math.floor((dataFinger + len(self.timePoints) - self.rmsWindow) / self.stepSize), 0)
+            startRMS = max(0, totalPointsRMS - len(dataRMS))
+            xDataRMS = np.arange(startRMS, startRMS + len(dataRMS), 1)
+            
             # Make Sure You are Saving Enough Points for the Next Round
             savePointsRMS = self.peakDetectionBuffer + self.stepSize + self.highPassBuffer + self.numPointsRMS
             self.previousDataRMS[channelIndex] = dataRMS[-savePointsRMS:] # Store RMS Data Needed for Next Round
@@ -217,8 +221,8 @@ class emgProtocol:
                 self.bioelectricPlotAxes[channelIndex].set_xlim(self.timePoints[0], self.timePoints[-1])
                 
                 # Plot the Filtered (RMS) Data
-                self.filteredBioelectricDataPlots[channelIndex].set_data(xDataRMS, dataRMS[-self.numPointsRMS:])
-                self.filteredBioelectricPlotAxes[channelIndex].set_xlim(xDataRMS[0], xDataRMS[0] + self.numPointsRMS)
+                self.filteredBioelectricDataPlots[channelIndex].set_data(xDataRMS[-self.numPointsRMS:], dataRMS[-self.numPointsRMS:])
+                self.filteredBioelectricPlotAxes[channelIndex].set_xlim(xDataRMS[-min(len(xDataRMS), self.numPointsRMS)], xDataRMS[-min(len(xDataRMS),self.numPointsRMS)] + self.numPointsRMS)
             # --------------------------------------------------------------- #
 
             # ----------------------- Peak Detection ------------------------ #
@@ -235,10 +239,10 @@ class emgProtocol:
             
             # ---------------------- Feature Analysis  ---------------------- #
             # Extract Features from the Good Peaks 
-            newFeatures = self.extractFeatures(bufferRMSDataX, bufferRMSData, peakInds)
+            newFeatures, leftBaselines = self.extractFeatures(bufferRMSDataX, bufferRMSData, peakInds)
             
             # Keep Track of the Features
-            featureHolder.append(newFeatures)
+            featureHolder.append(newFeatures); baselineHolder.append(leftBaselines)
             # --------------------------------------------------------------- #
 
 
@@ -249,7 +253,7 @@ class emgProtocol:
             
         # Identify New Movements by Peak Seperation
         while True:
-            nextPeak = None # Start by Assuming there are NO More Peaks to Analyze
+            nextPeak = None; # Start by Assuming there are NO More Peaks to Analyze
             # Find the Next Peak to be Grouped
             for channelInd in range(self.numChannels):
                 peakPointer = peakPointers[channelInd]
@@ -269,13 +273,15 @@ class emgProtocol:
             # If the Peak is Far from the Last Group, Make a New Group
             if nextPeak - self.highestAnalyzedGroupStartX > self.pointsPerGroupRMS or len(self.xPeaksList[peakChannel]) == 0:
                 # Check to See if you Need More Data to Establish a Group
-                if nextPeak > xDataRMS[-1] - self.pointsPerGroupRMS:
-                    break
+               # print(nextPeak, xDataRMS[-1] - self.pointsPerGroupRMS, morePeaksInAllChannels)
+               # if nextPeak > xDataRMS[-1] - self.pointsPerGroupRMS and not morePeaksInAllChannels:
+               #     break
                 # Update Group Holders
                 for channelInd in range(self.numChannels):
                     self.xPeaksList[channelInd].append([])
                     self.yPeaksList[channelInd].append([])
                     self.featureList[channelInd].append([])
+                    self.timeDelayIndices[channelInd].append([])
                 # Reset Your New Highest Peak
                 self.highestAnalyzedGroupStartX = nextPeak
                 currentGroupInd += 1
@@ -284,6 +290,7 @@ class emgProtocol:
             self.xPeaksList[peakChannel][currentGroupInd].append(nextPeak)
             self.yPeaksList[peakChannel][currentGroupInd].append(yPeaksHolder[peakChannel][peakPointers[peakChannel]-1])
             self.featureList[peakChannel][currentGroupInd].append(featureHolder[peakChannel][peakPointers[peakChannel]-1])
+            self.timeDelayIndices[peakChannel][currentGroupInd].append(baselineHolder[peakChannel][peakPointers[peakChannel]-1])
         
         # ------------------------ Predict Movement ------------------------- #
         badGroupInds = 0
@@ -292,25 +299,31 @@ class emgProtocol:
             currentGroupInd -= badGroupInds
             
             # Find the Smallest Peak Added to Unanalyzed Group
-            smallestNewPeak = 0
-            for channelPeaks in self.xPeaksList:
+            smallestNewPeak = 0; allPeaksCollected = True
+            for channelInd in range(self.numChannels):
+                channelPeaks = self.xPeaksList[channelInd]
                 if channelPeaks and channelPeaks[currentGroupInd]:
                     if channelPeaks[currentGroupInd][0] < smallestNewPeak or not smallestNewPeak:
                         smallestNewPeak = channelPeaks[currentGroupInd][0]
+                else:
+                    allPeaksCollected = False
             # Check that New Group has Enough Peak Seperation
-            if smallestNewPeak > xDataRMS[-1] - self.pointsPerGroupRMS:
+            if smallestNewPeak > xDataRMS[-1] - self.pointsPerGroupRMS and not allPeaksCollected:
                 break
             
-            featureArray = [];
+            featureArray = []; leftBaselineArray = []
             # Take the First Feature in Each Channel's Group
             for channelInd in range(self.numChannels):
                 # Check to See if Feature was Present in the Channel
                 if len(self.featureList[channelInd][currentGroupInd]) == 0:
-                    channelFeature = 0
+                    channelFeature = 0; leftBase = 0
                 else:
                     channelFeature = self.featureList[channelInd][currentGroupInd][0][0]
+                    leftBase = self.timeDelayIndices[channelInd][currentGroupInd][0]
                 # Store the Feature
                 featureArray.append(channelFeature)
+                
+                leftBaselineArray.append(leftBase)
 
             # Check if Features are Good
             if not self.goodFeatureGroup(featureArray):
@@ -322,12 +335,29 @@ class emgProtocol:
                     del self.xPeaksList[channelInd][currentGroupInd]
                     del self.yPeaksList[channelInd][currentGroupInd]
                     del self.featureList[channelInd][currentGroupInd]
+                    del self.timeDelayIndices[channelInd][currentGroupInd]
                 continue
             else:
                 self.lastAnalyzedGroup += 1; 
                     
             # If the Features are Good, Move the Robot
             if predictionModel:
+                xPeaks = []
+                for channelInd in range(self.numChannels):
+                    xPeaks.append(self.xPeaksList[channelInd][currentGroupInd])
+                if plotStreamedData:
+                    maxDelay = 0
+                    for channelInd in range(self.numChannels):
+                        leftBase = self.timeDelayIndices[channelInd][currentGroupInd]
+                        #leftBase = self.xPeaksList[channelInd][currentGroupInd]
+                        if leftBase:
+                            getY = self.yPeaksList[channelInd][currentGroupInd][0]
+                            if maxDelay < xDataRMS[-1] - leftBase[0]:
+                                maxDelay = xDataRMS[-1] - leftBase[0]
+                            self.timeDelayPlots[channelInd].set_data([leftBase[0], xDataRMS[-1]], [0.5,0.5])
+#                print("FINAL", xPeaks, self.data['timePoints'][-1])
+                    delayTime = self.secondsPerPointRMS*maxDelay
+                    print(delayTime)
                 self.predictMovement(featureArray, predictionModel, actionControl)
         # ------------------------------------------------------------------- #
 
@@ -347,7 +377,7 @@ class emgProtocol:
                         # Color Code the Group Peaks. Wrap Around to First Index When Done
                         groupColor = (groupNum-1)%(len(self.peakCurrentRightColorOrder))
                         # Create a Plot for the Peaks Using its Respective Group's Color
-                        groupPeakPlot = channelFiltered.plot([], [], 'o', c=self.peakCurrentRightColorOrder[groupColor], linewidth=1, alpha = 0.65)[0]
+                        groupPeakPlot = channelFiltered.plot([], [], 'o', c=self.peakCurrentRightColorOrder[groupColor], linewidth=1, markersize = 7, alpha = 0.65)[0]
                         # Save the Plot for Later Use in the Group
                         self.filteredBioelectricPeakPlots[channelIndex].append(groupPeakPlot)
                     # Get Peak Points
@@ -445,9 +475,10 @@ class emgProtocol:
     def findPeaks(self, xData, yData, channelIndex):
         # Find New Peak Indices and Last Recorded Peak's xLocation
         # For Lower Arm
-        #peakIndices = scipy.signal.find_peaks(yData, prominence=.03, height=0.01, width=15, rel_height=0.5, distance = 100)[0]
+        #peakIndices = scipy.signal.find_peaks(yData, prominence=.02, height=0.01, width=15, rel_height=0.4, distance = 50)[0]
+        peakIndices = scipy.signal.find_peaks(yData, prominence=.01, height=0.01, width=10, rel_height=0.4, distance = 10)[0]
         # For Neck
-        peakIndices = scipy.signal.find_peaks(yData, prominence=.005, height=0.001, width=8, distance = 10)[0]
+        #peakIndices = scipy.signal.find_peaks(yData, prominence=.005, height=0.001, width=8, distance = 10)[0]
         
         # Find Where the New Peaks Begin
         xPeaksNew = []; yPeaksNew = []; peakInds = []
@@ -481,23 +512,26 @@ class emgProtocol:
                 maxHeight = data[dataPointer]
 
         # If Your Binary Search is Too Small, Reduce it
-        return self.findNearbyMinimum(data, xPointer, math.floor(binarySearchWindow/2), maxPointsSearch)
+        return self.findNearbyMinimum(data, xPointer, math.floor(binarySearchWindow/6), maxPointsSearch)
                 
     def extractFeatures(self, xData, yData, peakInds):
-        peakFeatures = []
+        peakFeatures = []; leftBaselines = []
         for xPointer in peakInds:
             peakFeatures.append([])
             # Take Average of the Signal (Only Left Side As I Want to Decipher Motor Intention as Fast as I Can; Plus the Signal is generally Symmetric)
-            leftBaselineIndex = self.findNearbyMinimum(yData, xPointer, binarySearchWindow = -25, maxPointsSearch = 1000)
+            leftBaselineIndex = self.findNearbyMinimum(yData, xPointer, binarySearchWindow = -20, maxPointsSearch = 1000)
             peakAverage = np.mean(yData[leftBaselineIndex:xPointer+1])
             peakFeatures[-1].append(peakAverage)
             # Minimize Group Seperation
             if not self.pointsPerGroupRMS:
-                self.pointsPerGroupRMS = int((xData[xPointer] - xData[leftBaselineIndex])/2)
+                self.pointsPerGroupRMS = max(6, int((xData[xPointer] - xData[leftBaselineIndex])))
                 print("\tSetting Group Width", self.pointsPerGroupRMS)
+            
+            leftBaselines.append(xData[leftBaselineIndex])
+          #  print("INITIAL", xData[xPointer], leftBaselineIndex, xPointer, xData[leftBaselineIndex], self.data['timePoints'][-1])
                 
         # Return Features
-        return peakFeatures
+        return peakFeatures, leftBaselines
     
     def goodFeatureGroup(self, featureArray):
         numFeaturesFound = 0
@@ -515,7 +549,7 @@ class emgProtocol:
         # Predict Data
         predictedIndex = predictionModel.predictData(np.array([inputData]))[0]
         predictedLabel = self.gestureClasses[predictedIndex]
-        print("The Predicted Label is", predictedLabel)
+        print("\tThe Predicted Label is", predictedLabel)
         if actionControl:
             if predictedLabel == "left":
                 actionControl.moveLeft()
