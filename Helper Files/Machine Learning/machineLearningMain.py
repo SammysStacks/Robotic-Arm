@@ -81,7 +81,6 @@ class predictionModelHead:
         if self.modelType in ['RF', 'LR', 'KNN', 'SVM']:
             # Train the NN with the Training Data
             self.predictionModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels)
-            sys.exit()
             # Plot Model
             self.plot3DLabels(signalData, signalLabels)
             #self.predictionModel.plotModel(signalData, signalLabels) # Must Edit if you Want to Use
@@ -305,6 +304,8 @@ class predictionModelHead:
             ax.set_xticklabels(headerTitles)
             self.add_value_labels(ax)
         # Show Plot
+        name = "Feature Importance"
+        plt.savefig(self.saveDataFolder + name + " " + self.modelType + ".png", dpi=150, bbox_inches='tight')
         pyplot.show()
         
     def add_value_labels(self, ax, spacing=5):

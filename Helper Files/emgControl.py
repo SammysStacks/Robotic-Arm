@@ -69,14 +69,14 @@ if __name__ == "__main__":
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
     streamArduinoData = False  # Stream in Data from the Arduino and Analyze; Input 'testModel' = True to Apply Learning
     readDataFromExcel = False   # Analyze Data from Excel File called 'testDataExcelFile' on Sheet Number 'testSheetNum'
-    reAnalyzePeaks = True     # Read in ALL Data Under 'trainingDataExcelFolder', and Reanalyze Peaks (THIS EDITS EXCEL DATA IN PLACE!; DONT STOP PROGRAM MIDWAY)
-    trainModel = False         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
+    reAnalyzePeaks = False     # Read in ALL Data Under 'trainingDataExcelFolder', and Reanalyze Peaks (THIS EDITS EXCEL DATA IN PLACE!; DONT STOP PROGRAM MIDWAY)
+    trainModel = True         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
     
     # User Options During the Run: Any Number Can be True
     plotStreamedData = False    # Graph the Data to Show Incoming Signals + Analysis
     saveModel = False          # Save the Machine Learning Model for Later Use
     testModel = False          # Apply the Learning Algorithm to Decode the Signals
-    saveData = False           # Saves the Data in 'readData.data' in an Excel Named 'saveExcelName' or map2D if Training
+    saveData = True           # Saves the Data in 'readData.data' in an Excel Named 'saveExcelName' or map2D if Training
     
     # ---------------------------------------------------------------------- #
     
@@ -98,12 +98,12 @@ if __name__ == "__main__":
     
     # Use Previously Processed Data that was Saved; Extract Features for Training
     if reAnalyzePeaks or trainModel:
-        trainingDataExcelFolder = "../Output Data/EMG Data/Neck/2021-11-09/"
+        trainingDataExcelFolder = "../Output Data/EMG Data/Lower Leg/2021-11-10/"
         #trainingDataExcelFolder = "../Input Data/Full Training Data/Lab Electrodes/Sam/May11/Test/"  # Path to the Training Data Folder; All .xlsx Data Used
 
     if trainModel or testModel and not reAnalyzePeaks:
         # Pick the Machine Learning Module to Use
-        modelType = "SVM"  # Machine Learning Options: NN, RF, LR, KNN, SVM
+        modelType = "RF"  # Machine Learning Options: NN, RF, LR, KNN, SVM
         modelPath = "./Machine Learning/Models/predictionModel_LowerLeg_" + modelType + ".pkl" # Path to Model (Creates New if it Doesn't Exist)
         saveDataFolder = "../Output Data/EMG Data/Lower Leg/2021-11-10/Analysis/" + modelType + "/"
         # Get the Machine Learning Module
