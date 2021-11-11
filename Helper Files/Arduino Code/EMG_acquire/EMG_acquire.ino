@@ -1,15 +1,12 @@
-// Global Variables
-unsigned long totalTime;
-unsigned long startTime;
-// Channel Variables
-int Channel1;
-int Channel2;
-int Channel3;
-int Channel4;
+// Global Time Variables
+unsigned long  totalTime; unsigned long startTime;
+// Global Channel Variables
+int Channel1; int Channel2;
+int Channel3; int Channel4;
 
 void setup() {
    Serial.begin(115200);         //Use 115200 baud rate for serial communication
-   unsigned long startTime = millis();
+   startTime = millis();
 }
 
 void loop() {

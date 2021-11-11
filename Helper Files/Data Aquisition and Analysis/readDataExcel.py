@@ -81,7 +81,6 @@ class readExcel():
             while pointNum - dataFinger >= self.numTimePoints:
                 self.analysisProtocol.analyzeData(dataFinger, plotStreamedData, predictionModel, actionControl = actionControl)
                 dataFinger += self.moveDataFinger
-                
         # At the End, Analyze Any Data Left
         if dataFinger < len(self.analysisProtocol.data["timePoints"]):
             self.analysisProtocol.analyzeData(dataFinger, plotStreamedData, predictionModel, actionControl = actionControl)
@@ -106,7 +105,7 @@ class readExcel():
                 break
         
         # Create Data Structure to Hold Results
-        featureList = [[] for _ in range(numFeatures)]
+        featureList = []
         # Loop Through the Excel Worksheet to collect all the data
         for featureData in excelSheet.iter_rows(min_col=2+self.numChannels, min_row=dataStartRow, max_col=1+self.numChannels+numFeatures, max_row=excelSheet.max_row):
             
@@ -120,16 +119,16 @@ class readExcel():
             # If All Rows are Empty (Features are Blank), Then it is a New Feature Group
             if numEmptyFeatures == self.numChannels:
                 # If There Was Two Consecutive Empty Rows, There are No More Features
-                if len(featureList[0]) == 0:
+                if np.sum(featureList) == 0:
                     break
                 # Collect Features in Current Group
-                Training_Data.append(list(np.mean(featureList, axis=1)))
+                Training_Data.append(list(featureList))
                 Training_Labels.append(featureLabelIndexArray[0])
                 # Reset Group Holder
-                featureList = [[] for _ in range(numFeatures)]
+                featureList = []
             else:
                 for featureIndex, feature in enumerate(featureRow):
-                    featureList[featureIndex].append(feature)           
+                    featureList.append(feature)           
                     
         print("\tCollected Training Data for:", excelSheet.title)
         return Training_Data, Training_Labels
@@ -265,20 +264,17 @@ class saveExcel:
                 cellColor = self.openpyxlColors[peakColor]
                 for featureValList in featureList[channelIndex][groupNum]:
                     for featureVal in featureValList:
-                        # Add X Location
+                        # Add Feature Location
                         WB_worksheet.cell(row=rowIndex, column=channelIndex + self.numChannels + 2).value = featureVal
                         WB_worksheet.cell(row=rowIndex, column=channelIndex + self.numChannels + 2).fill = PatternFill(fgColor=cellColor, fill_type = 'solid')
                         WB_worksheet.cell(row=rowIndex, column=channelIndex + self.numChannels + 2).alignment = alignCenter
                         
                         rowIndex += 1
-                # Set the Same Row Index for All
-                maxFeatures = 0
-                for channelNum in featureList:
-                    newFeatureNum = len(channelNum[groupNum])
-                    if maxFeatures < newFeatureNum:
-                        maxFeatures = newFeatureNum
-                            
-                startIndex += 1 + maxFeatures
+                # Set the Same Row Index for All   
+                try:
+                    startIndex += 1 + len(featureValList)
+                except:
+                    continue
         
         # Center the Data in the Cells
         for rowInd in range(2, WB_worksheet.max_row + 1):
@@ -318,15 +314,15 @@ class saveExcel:
             WB_worksheet = WB.create_sheet(sheetName)
             print("Saving Sheet as", sheetName, "\n")
         
-        header = ['Feature Number ' + str(featureNum) for featureNum in range(1, 1+self.numFeatures)]
+        header = ['Dimension ' + str(featureNum) for featureNum in range(1, 1+len(signalData[0]))]
         header.extend(['Signal Labels True', 'Signal Labels Predicted'])
         WB_worksheet.append(header)
         
         # Save Data to Worksheet
-        signalLabelsTrue = [np.argmax(i) for i in signalLabelsTrue]
-        for pointInd in range(signalData):
+        for pointInd in range(len(signalData)):
             # Get labels
-            row = [signalData[pointInd], signalLabelsTrue[pointInd], signalLabelsPredicted[pointInd]]
+            row = [signalData[pointInd][featureNum] for featureNum in range(len(signalData[pointInd]))]
+            row.extend([signalLabelsTrue[pointInd], signalLabelsPredicted[pointInd]])
             WB_worksheet.append(row)
         
         # Center the Data in the Cells
