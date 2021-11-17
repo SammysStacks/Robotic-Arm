@@ -81,10 +81,11 @@ class emgProtocol:
             self.previousDataRMS[channelIndex] = []
         
         # Reset Mutable Variables
-        self.xDataRMS = []
-        self.groupWidthRMS = None # The Number of Points for 1 Group
-        self.lastAnalyzedGroup = -1
-        self.highestAnalyzedGroupStartX = 0
+        self.xDataRMS = []              # Holder for Most Recent RMS Data
+        self.groupWidthRMS = None       # The Number of Seconds for 1 Group
+        self.groupWidthRMSPoints = None # The Number of Points for 1 Group
+        self.lastAnalyzedGroup = -1     # Last Fully Formed Group (Peaks in Gesture)
+        self.highestAnalyzedGroupStartX = 0  # First X-Point of Last Fully Formed Group 
         # Reset Mutable Lists
         self.xPeaksList = [[] for _ in range(self.numChannels)]
         self.yPeaksList = [[] for _ in range(self.numChannels)]
@@ -147,7 +148,7 @@ class emgProtocol:
             self.bioelectricPlotAxes[channelIndex].set_xlabel("Time (Seconds)")
             self.bioelectricPlotAxes[channelIndex].set_ylabel("Bioelectric Signal (Volts)")
             
-        yLimitHighFiltered = 0.3;
+        yLimitHighFiltered = 0.5;
         # Create the Data Plots
         self.filteredBioelectricPlotAxes = [] 
         self.filteredBioelectricDataPlots = []
@@ -282,6 +283,8 @@ class emgProtocol:
                 # Reset Your New Highest Peak
                 self.highestAnalyzedGroupStartX = nextPeak
                 currentGroupInd += 1
+            elif nextPeak < self.highestAnalyzedGroupStartX:
+                continue
                 
             # Update Group Holders (Only Add First Peak)
             if self.xPeaksList[peakChannel][currentGroupInd] == []:
@@ -310,7 +313,7 @@ class emgProtocol:
                 break
             
             featureArray = []; leftBaselineArray = []
-            # Take the First Feature in Each Channel's Group
+            # Take the First Feature in Each Channel's Group (Amplitude Check)
             for channelInd in range(self.numChannels):
                 # Check to See if Feature was Present in the Channel
                 if len(self.featureList[channelInd][currentGroupInd]) == 0:
@@ -318,6 +321,7 @@ class emgProtocol:
                 else:
                     channelFeature = self.featureList[channelInd][currentGroupInd][0][0]
                     leftBase = self.timeDelayIndices[channelInd][currentGroupInd][0]
+                    numFeatures = len(self.featureList[channelInd][currentGroupInd][0])
                 # Store the Feature
                 featureArray.append(channelFeature)
                 leftBaselineArray.append(leftBase)
@@ -349,19 +353,19 @@ class emgProtocol:
                             if maxDelay < self.xDataRMS[-1] - leftBase[0]:
                                 maxDelay = self.xDataRMS[-1] - leftBase[0]
                             self.timeDelayPlots[channelInd].set_data([leftBase[0], self.xDataRMS[-1]], [getY, getY])
-#                print("FINAL", self.data['timePoints'][-1])
-                    print(maxDelay)
+                    print("Delay Time", maxDelay)
                 
-                realFeatureArray = []
-                for numFeatureInd in range(5):
+                # Full Feature Array
+                fullFeatureArray = []
+                for numFeatureInd in range(numFeatures):
                     for channelInd in range(self.numChannels):
                         if len(self.featureList[channelInd][currentGroupInd]) == 0:
-                            realFeatureArray.append(0)
+                            fullFeatureArray.append(0)
                         else:
-                            realFeatureArray.append(self.featureList[channelInd][currentGroupInd][0][numFeatureInd])
+                            fullFeatureArray.append(self.featureList[channelInd][currentGroupInd][0][numFeatureInd])
                     
-                
-                self.predictMovement(realFeatureArray, predictionModel, actionControl)
+                # Predict the Movement
+                self.predictMovement(fullFeatureArray, predictionModel, actionControl)
         # ------------------------------------------------------------------- #
 
 
@@ -531,14 +535,19 @@ class emgProtocol:
                 plt.plot(xData, yData); plt.plot(xData[peakIndices], yData[peakIndices], 'o', markersize=5); plt.plot(xData[leftBaselineIndexes], yData[leftBaselineIndexes], 'o', markersize=5); plt.show()
         else:
             # For Lower Arm
-            # peakIndices = scipy.signal.find_peaks(yData, prominence=.02, height=0.01, width=15, rel_height=0.4, distance = 50)[0]
-            # peakIndices = scipy.signal.find_peaks(yData, prominence=.02, height=0.015, width=15, rel_height=0.6, distance = 30)[0]
+            #peakIndices = scipy.signal.find_peaks(yData, prominence=.02, height=0.01, width=15, rel_height=0.4, distance = 50)[0]
+            peakIndices = scipy.signal.find_peaks(yData, prominence=.007, height=0.01, width=20, rel_height=0.4, distance = 150)[0]
             # For Neck
             #peakIndices = scipy.signal.find_peaks(yData, prominence=.005, height=0.001, width=8, distance = 10)[0]
             #peakIndices = scipy.signal.find_peaks(yData, prominence=.003, height=0.0005, width=8, distance = 20)[0]
             # For Lower Leg
-            peakIndices = scipy.signal.find_peaks(yData, prominence=.003, height=0.0005, width=8, distance = 20)[0]
-        
+            #peakIndices = scipy.signal.find_peaks(yData, prominence=.003, height=0.0005, width=8, distance = 20)[0]
+            # For Upper Back
+            #peakIndices = scipy.signal.find_peaks(yData, prominence=.0008, height=0.0001, width=20, distance = 160)[0]
+            # For Fingers (on Arm)
+            #peakIndices = scipy.signal.find_peaks(yData, prominence=.002, height=0.0001, width=30, distance = 120)[0]
+
+            
         # Find Where the New Peaks Begin
         for peakInd in peakIndices:
             xPeakLoc = xData[peakInd]
@@ -579,23 +588,33 @@ class emgProtocol:
         for xPointer in peakInds:
             peakFeatures.append([])
             # Take Average of the Signal (Only Left Side As I Want to Decipher Motor Intention as Fast as I Can; Plus the Signal is generally Symmetric)
-            leftBaselineIndex = self.findNearbyMinimum(yData, xPointer, binarySearchWindow = -5, maxPointsSearch = 500)
-            if leftBaselineIndex == xPointer:
-                leftBaselineIndex = max(0, xPointer - 50)
+            leftBaselineIndex = max(0, self.findNearbyMinimum(yData, xPointer - 30, binarySearchWindow = -25, maxPointsSearch = 600))           # If Left Minimum Too Close to the Peak (Couldnt Find the Left Baseline)
+            if leftBaselineIndex >= xPointer - 3:
+                # Set the Baseline Based on the Other Peak Widths (If One Availible)
+                if self.groupWidthRMSPoints:
+                    leftBaselineIndex = max(0, xPointer - self.groupWidthRMSPoints)
+                # Or Just Take the Last 50 Points (Good Guess)
+                else:
+                    leftBaselineIndex = max(0, xPointer - 50)
+            # Analyze Only the Left Side (As I Want to Decipher Motor Intention as Fast as I Can; Plus the Signal is generally Symmetric)
             dataWindow = np.array(yData[leftBaselineIndex:xPointer+1])
-            peakAverage = np.mean(dataWindow)
-        #    peakVariance = np.sum(dataWindow*dataWindow)/(len(dataWindow)-1)
-        #    peakSTD = np.std(dataWindow)
-            maxSlope = max(np.diff(np.diff(np.diff(dataWindow))))
+            
+            # Feature Extraction
+            peakAverage = np.mean(dataWindow) - yData[leftBaselineIndex]
+            peakHeight = yData[xPointer] - yData[leftBaselineIndex]
+            peakVariance = np.sum(dataWindow*dataWindow)/(len(dataWindow)-1)
+            peakSTD = np.std(dataWindow, ddof=1)
+            maxSlope = max(np.gradient(dataWindow))
             # Add Features
-            peakFeatures[-1].append(peakAverage)
-            peakFeatures[-1].append(yData[xPointer])
-       #     peakFeatures[-1].append(peakVariance)
-       #     peakFeatures[-1].append(peakSTD)
-            peakFeatures[-1].append(maxSlope)
+            #peakFeatures[-1].append(peakAverage)
+            peakFeatures[-1].append(peakHeight)
+            #peakFeatures[-1].append(peakVariance)
+            #peakFeatures[-1].append(peakSTD)
+            #peakFeatures[-1].append(maxSlope)
             # Minimize Group Seperation
             if not self.groupWidthRMS:
-                self.groupWidthRMS = (xData[xPointer] - xData[leftBaselineIndex])
+                self.groupWidthRMS = (xData[xPointer] - xData[leftBaselineIndex])*2
+                self.groupWidthRMSPoints = xPointer - leftBaselineIndex
                 print("\tSetting Group Width", self.groupWidthRMS)
             
             leftBaselines.append(xData[leftBaselineIndex])
@@ -610,7 +629,7 @@ class emgProtocol:
             if feature > 0:
                 numFeaturesFound += 1
                 
-        if numFeaturesFound <= 2: #1 and np.sum(featureArray) <= 0.1:
+        if numFeaturesFound <= 1 and np.sum(featureArray) <= 0.1:
             print("\tOnly One Small Signal Found; Not Recording Feature");
             return False
         
@@ -636,5 +655,22 @@ class emgProtocol:
                 actionControl.releaseHand()
 
 
+"""
+filteredData = readData.analysisProtocol.previousDataRMS[0]
+xData = readData.analysisProtocol.data['timePoints'][-len(filteredData):]
+yData = np.array(filteredData); xData = np.array(xData); filteredData = np.array(filteredData)
 
+plt.plot(xData, filteredData)
+
+
+leftIndices = []; leftIndicesOther = []
+xPeaksNew, yPeaksNew, peakInds = findPeaks(xData, filteredData, 1)
+for xPointer in peakInds:
+    leftBaselineIndex = findNearbyMinimum(yData, xPointer, binarySearchWindow = -15, maxPointsSearch = 500)
+    leftBaselineIndexOther = findBaselineIndex(xData, yData, xPointer, searchDirection = -1)
+    leftIndices.append(leftBaselineIndex)
+    leftIndicesOther.append(leftBaselineIndexOther)
+
+plt.plot(xData[leftIndices], yData[leftIndices], 'o'); plt.plot(xData[leftIndicesOther], yData[leftIndicesOther], 'o')
+"""
 

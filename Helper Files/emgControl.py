@@ -56,15 +56,18 @@ if __name__ == "__main__":
     # General Data Collection Information (You Will Likely Not Edit These)
     emgSerialNum = '85735313333351E040A0'    # Arduino Serial Number (port.serial_number) Collecting EMG Signals
     handSerialNum = None   # Arduino Serial Number for the Robotic Hand Control. Leave None if NOT Controlling the Hand
-    numDataPoints = 30000   # The Number of Points to Stream into the Arduino
-    numTimePoints = 5000    # The Number of Data Points to Display to the User at a Time; My beta-Test Used 2000 Points
-    moveDataFinger = 200    # The Number of NEW Data Points to Analyze at a Time; My Beta-Test Used 200 Points with Plotting (100 Without). This CAN Change How SOME Peaks are Found (be Careful)
+    numDataPoints = 50000   # The Number of Points to Stream into the Arduino
+    numTimePoints = 6000    # The Number of Data Points to Display to the User at a Time; My beta-Test Used 2000 Points
+    moveDataFinger = 5000    # The Number of NEW Data Points to Analyze at a Time; My Beta-Test Used 200 Points with Plotting (100 Without). This CAN Change How SOME Peaks are Found (be Careful)
     samplingFreq = None     # The Average Number of Points Steamed Into the Arduino Per Second; If NONE Given, Algorithm will Calculate Based on Initial Data
     numChannels = 4         # The Number of Arduino Channels with EMG Signals Read in; My Beta-Test Used 4 Channels
     # Specify the Type of Movements to Learn
-    #gestureClasses = np.char.lower(["Up", "Down", "Left", "Right", "Grab", "Release"])  # Define Labels as Array
+    gestureClasses = np.char.lower(["Up", "Down", "Left", "Right", "Grab", "Release"])  # Define Labels as Array
     #gestureClasses = np.char.lower(["Forwards", "Back", "Left", "Right", "Rotate Left", "Rotate Right"])  # Define Labels as Array
-    gestureClasses = np.char.lower(["Up", "Down", "Left", "Right", "Point", "Flex"])  # Define Labels as Array
+    #gestureClasses = np.char.lower(["Front 90", "Back", "Left", "Right 90", "Open Chest", "Shrug"])  # Define Labels as Array
+    #gestureClasses = np.char.lower(["Front 45", "Front 90", "Front 135", "Front 180"])  # Define Labels as Array
+    #gestureClasses = np.char.lower(["Fingers Curl", "Fingers to Thumb", "Fingers to Palm", "Full Grab"])  # Define Labels as Array
+    #gestureClasses = np.char.lower(["Back", "Left", "Open Chest", "Shrug", "Right 45", "Right 90", "Right 135", "Right 180", "Front 45", "Front 90", "Front 135", "Front 180"])  # Define Labels as Array
 
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
     streamArduinoData = False  # Stream in Data from the Arduino and Analyze; Input 'testModel' = True to Apply Learning
@@ -76,16 +79,16 @@ if __name__ == "__main__":
     plotStreamedData = False    # Graph the Data to Show Incoming Signals + Analysis
     saveModel = False          # Save the Machine Learning Model for Later Use
     testModel = False          # Apply the Learning Algorithm to Decode the Signals
-    saveData = True           # Saves the Data in 'readData.data' in an Excel Named 'saveExcelName' or map2D if Training
+    saveData = False           # Saves the Data in 'readData.data' in an Excel Named 'saveExcelName' or map2D if Training
     
     # ---------------------------------------------------------------------- #
     
     # Take Data from the Arduino and Save it as an Excel (For Later Use)
     if saveData:
-        saveExcelName = "You Yu 11-10-2021 Lower Leg Round 2.xlsx"  # The Name of the Saved File
-        saveDataFolder = "../Output Data/EMG Data/Lower Leg/2021-11-10/"  # Data Folder to Save the Excel Data; MUST END IN '/'
+        saveExcelName = "You Yu 11-12-2021 Finger Angles.xlsx"  # The Name of the Saved File
+        saveDataFolder = "../Output Data/EMG Data/Upper Back/2021-11-11/"  # Data Folder to Save the Excel Data; MUST END IN '/'
         # Speficy the eye Movement You Will Perform
-        eyeMovement = "Flex".lower() # Make Sure it is Lowercase
+        eyeMovement = "Full Grab".lower() # Make Sure it is Lowercase
         if eyeMovement and eyeMovement not in gestureClasses:
             print("The Gesture", "'" + eyeMovement + "'", "is Not in", gestureClasses)
     else:
@@ -93,22 +96,27 @@ if __name__ == "__main__":
             
     # Instead of Arduino Data, Use Test Data from Excel File
     if readDataFromExcel:
-        testDataExcelFile = ".../Output Data/EMG Data/Lower Leg/2021-11-10/You Yu 11-10-2021 Lower Leg.xlsx" # Path to the Test Data
-        testSheetNum = 1   # The Sheet/Tab Order (Zeroth/First/Second/Third) on the Bottom of the Excel Document
+        testDataExcelFile = "../Output Data/EMG Data/Upper Back/2021-11-11/Samuel Solomon 2021-05-11 Round 2 copy.xlsx" # Path to the Test Data
+        testSheetNum = 5   # The Sheet/Tab Order (Zeroth/First/Second/Third) on the Bottom of the Excel Document
     
     # Use Previously Processed Data that was Saved; Extract Features for Training
     if reAnalyzePeaks or trainModel:
-        trainingDataExcelFolder = "../Output Data/EMG Data/Lower Leg/2021-11-10/"
-        #trainingDataExcelFolder = "../Input Data/Full Training Data/Lab Electrodes/Sam/May11/Test/"  # Path to the Training Data Folder; All .xlsx Data Used
+        trainingDataExcelFolder = "../Output Data/EMG Data/Arm/May11 Test Results/New Analysis/With 1 Features/" # Path to the Training Data Folder; All .xlsx Data Used
 
     if trainModel or testModel and not reAnalyzePeaks:
         # Pick the Machine Learning Module to Use
-        modelType = "RF"  # Machine Learning Options: NN, RF, LR, KNN, SVM
-        modelPath = "./Machine Learning/Models/predictionModel_LowerLeg_" + modelType + ".pkl" # Path to Model (Creates New if it Doesn't Exist)
-        saveDataFolder = "../Output Data/EMG Data/Lower Leg/2021-11-10/Analysis/" + modelType + "/"
+        modelType = "KNN"  # Machine Learning Options: RF, LR, KNN, SVM
+        modelPath = "./Machine Learning/Models/predictionModel_Arm_" + modelType + ".pkl" # Path to Model (Creates New if it Doesn't Exist)
+        saveDataFolder = trainingDataExcelFolder + "No Channel 4/" + modelType + "/"
         # Get the Machine Learning Module
         performMachineLearning = machineLearningMain.predictionModelHead(modelType, modelPath, dataDim = numChannels, gestureClasses = gestureClasses, saveDataFolder = saveDataFolder)
         predictionModel = performMachineLearning.predictionModel
+        # Feature Labels
+        featureLabels = []
+        # ["peakAverage", "peakHeight", "peakVariance", "peakSTD", "maxSlope"]
+        for feature in ["peakHeight"]:
+            for channel in range(1,5):
+                featureLabels.append(feature + " in Channel " + str(channel))
     else:
         predictionModel = None
 
@@ -117,7 +125,7 @@ if __name__ == "__main__":
     #           Data Collection Program (Should Not Have to Edit)            #
     # ---------------------------------------------------------------------- #
     # ---------------------------------------------------------------------- #
-    
+
     if not streamArduinoData:
         emgProtocol = emgAnalysis.emgProtocol(numTimePoints, moveDataFinger, numChannels, samplingFreq, gestureClasses, plotStreamedData)
     # Stream in Data from Arduino
@@ -138,10 +146,15 @@ if __name__ == "__main__":
         # Extract the Data
         readData = excelData.readExcel(emgProtocol)
         signalData, signalLabels = readData.getTrainingData(trainingDataExcelFolder, numChannels, gestureClasses, mode='Train')
+        for i in range(0, -1, -1):
+            for delCol in [3]:
+                signalData = np.delete(signalData, delCol + i*4, 1)
+                featureLabels = list(np.delete(featureLabels, delCol + i*4, 0))
         print("\nCollected Signal Data")
 
         # Train the Data on the Gestures
-        performMachineLearning.trainModel(signalData, signalLabels)
+        performMachineLearning.trainModel(signalData, signalLabels, featureLabels = featureLabels)
+        sys.exit()
         # Save Signals and Labels
         if len(performMachineLearning.map2D) != 0:
             saveInputs = excelData.saveExcel(numChannels, numChannels)

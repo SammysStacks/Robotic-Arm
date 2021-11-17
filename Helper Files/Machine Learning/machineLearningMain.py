@@ -22,6 +22,8 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.inspection import permutation_importance
 # Neural Network Modules
 from sklearn.model_selection import train_test_split
+# Feature Importance
+import shap
 
 # Import Machine Learning Files
 sys.path.append('./Machine Learning/Classification Methods/')
@@ -51,7 +53,7 @@ class predictionModelHead:
         # Get Prediction Model
         self.predictionModel = self.getModel(modelType, modelPath, dataDim)
         # Create Output File Directory to Save Data: If None
-        os.makedirs(saveDataFolder, exist_ok=True)
+        os.makedirs(self.saveDataFolder, exist_ok=True)
         
     
     def getModel(self, modelType, modelPath, dataDim):
@@ -66,14 +68,23 @@ class predictionModelHead:
         elif modelType == "KNN":
             predictionModel = KNN.KNN(modelPath = modelPath, numClasses = self.numClasses)
         elif modelType == "SVM":
-            predictionModel = SVM.SVM(modelPath = modelPath, modelType = "poly", polynomialDegree = 3)
+            svmType = "poly"
+            predictionModel = SVM.SVM(modelPath = modelPath, modelType = svmType, polynomialDegree = 3)
+            # Section off SVM Data Analysis Into the Type of Kernels
+            self.saveDataFolder += svmType +"/"
+            os.makedirs(self.saveDataFolder, exist_ok=True)
         else:
             print("No Matching Machine Learning Model was Found for '", modelType, "'");
             sys.exit()
         # Return the Precition Model
         return predictionModel
     
-    def trainModel(self, signalData, signalLabels):
+    def trainModel(self, signalData, signalLabels, featureLabels = []):
+        if featureLabels and not len(featureLabels) == len(signalData[0]):
+            print("The Number of Feature Labels Provided Does Not Match the Number of Features")
+            print("Removing Feature Labels")
+            featureLabels = []
+            
         signalData = np.array(signalData); signalLabels = np.array(signalLabels)
         # Split the Data into Training and Validation Sets
         Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabels, test_size=0.4, shuffle= True, stratify=signalLabels)
@@ -81,12 +92,16 @@ class predictionModelHead:
         if self.modelType in ['RF', 'LR', 'KNN', 'SVM']:
             # Train the NN with the Training Data
             self.predictionModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels)
-            # Plot Model
-            self.plot3DLabels(signalData, signalLabels)
-            #self.predictionModel.plotModel(signalData, signalLabels) # Must Edit if you Want to Use
-            self.plot3DLabelsMovie(signalData, signalLabels)
-            self.map2D = self.mapTo2DPlot(signalData, signalLabels)
+            # Label Accuracy
             self.accuracyDistributionPlot(signalData, signalLabels,  self.predictionModel.predictData(signalData), self.gestureClasses)
+            # Extract Feature Importance
+            self.featureImportance(signalData, signalLabels, Testing_Data, Testing_Labels, featureLabels = featureLabels, numTrials = 100)
+            # Plot Model (Right Now it Only Works for 6 Gestures; Just Change the Labeling of the Classes in cmap)
+            if self.numClasses == 6:
+                self.plot3DLabels(signalData, signalLabels)
+                #self.predictionModel.plotModel(signalData, signalLabels) # Must Edit if you Want to Use
+                self.plot3DLabelsMovie(signalData, signalLabels)
+                self.map2D = self.mapTo2DPlot(signalData, signalLabels)
 
         elif self.modelType == "NN":
             Training_LabelsArray = []; maxLabel = max(Training_Labels) + 1
@@ -110,9 +125,6 @@ class predictionModelHead:
             self.predictionModel.plot3DLabels(signalData, signalLabels)
             self.predictionModel.accuracyDistributionPlot(signalData, signalLabels,  self.predictionModel.predictData(signalData), self.gestureClasses)
             self.predictionModel.plotStats()
-        
-        if self.modelType == "RF":
-            self.featureImportance(signalData, signalLabels, headerTitles = [], numTrials = 30)
 
         # Find the Data Distribution
         classDistribution = collections.Counter(signalLabels)
@@ -133,10 +145,10 @@ class predictionModelHead:
         
         X_2d = self.rotatePoints(X_2d, -np.pi/2).T
         
-        figMap = plt.scatter(X_2d[:,0], X_2d[:,1], c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', 6), s = 130, marker='.', edgecolors='k')        
+        figMap = plt.scatter(X_2d[:,0], X_2d[:,1], c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', self.numClasses), s = 130, marker='.', edgecolors='k')        
         
         # Figure Aesthetics
-        fig.colorbar(figMap, ticks=range(6), label='digit value')
+        fig.colorbar(figMap, ticks=range(self.numClasses), label='digit value')
         figMap.set_clim(-0.5, 5.5)
         plt.title('Channel Feature Map');
         fig.savefig(self.saveDataFolder + name + " " + self.modelType + ".png", dpi=200, bbox_inches='tight')
@@ -166,7 +178,7 @@ class predictionModelHead:
         ax = plt.axes(projection='3d')
         
         # Scatter Plot
-        ax.scatter3D(signalData[:, 3], signalData[:, 1], signalData[:, 2], c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', 6), s = 100, edgecolors='k')
+        ax.scatter3D(signalData[:, 3], signalData[:, 1], signalData[:, 2], c = signalLabels, cmap = plt.cm.get_cmap('cubehelix', self.numClasses), s = 100, edgecolors='k')
         
         ax.set_title('Channel Feature Distribution');
         ax.set_xlabel("Channel 4")
@@ -200,7 +212,7 @@ class predictionModelHead:
                 
                 if len(currentLabels) != 0:
                     # Scatter Plot
-                    figMap = ax.scatter3D(channelPoints1, channelPoints2, channelPoints3, "o", c = currentLabels, cmap = plt.cm.get_cmap('cubehelix', 6), s = 50, edgecolors='k')
+                    figMap = ax.scatter3D(channelPoints1, channelPoints2, channelPoints3, "o", c = currentLabels, cmap = plt.cm.get_cmap('cubehelix', self.numClasses), s = 50, edgecolors='k')
         
                     ax.set_title('Channel Feature Distribution; Channel 4 = ' + str(channel4Val) + " ± " + str(errorPoint));
                     ax.set_xlabel("Channel 1")
@@ -213,7 +225,7 @@ class predictionModelHead:
                     ax.set_zlim3d(0, max(signalData[:, 2]))
                     
                     # Figure Aesthetics
-                    cb = fig.colorbar(figMap, ticks=range(6), label='digit value')
+                    cb = fig.colorbar(figMap, ticks=range(self.numClasses), label='digit value')
                     plt.rcParams['figure.dpi'] = 300
                     figMap.set_clim(-0.5, 5.5)
                     
@@ -250,16 +262,16 @@ class predictionModelHead:
         # Style the Fonts
         font = {'family' : 'verdana',
                 'weight' : 'bold',
-                'size'   : 9}
+                'size'   : 8}
         matplotlib.rc('font', **font)
         
         # Format, save, and show
         fig.tight_layout()
-        plt.savefig(self.saveDataFolder + name + " " + self.modelType + ".png", dpi=150, bbox_inches='tight')
+        plt.savefig(self.saveDataFolder + name + " " + self.modelType + ".png", dpi=130, bbox_inches='tight')
         plt.show()
     
     
-    def plotImportance(self, perm_importance_result, headerTitles):
+    def plotImportance(self, perm_importance_result, featureLabels, name = "Relative Feature Importance"):
         """ bar plot the feature importance """
     
         fig, ax = plt.subplots()
@@ -270,44 +282,141 @@ class predictionModelHead:
                  xerr=perm_importance_result['importances_std'][indices])
     
         ax.set_yticks(range(len(indices)))
-        if headerTitles:
-            _ = ax.set_yticklabels(np.array(headerTitles)[indices])
+        if featureLabels:
+            _ = ax.set_yticklabels(np.array(featureLabels)[indices])
+      #      headers = np.array(featureLabels)[indices]
+      #      for i in headers:
+      #          print('%s Weight: %.5g' % (str(i),v))
+        plt.savefig(self.saveDataFolder + name + " " + self.modelType + ".png", dpi=150, bbox_inches='tight')
+        
     
-    def featureImportance(self, signalData, signalLabels, headerTitles = [], numTrials = 30):
+    def featureImportance(self, signalData, signalLabels, Testing_Data, Testing_Labels, featureLabels = [], numTrials = 100):
         """
         Randomly Permute a Feature's Column and Return the Average Deviation in the Score: |oldScore - newScore|
         NOTE: ONLY Compare Feature on the Same Scale: Time and Distance CANNOT be Compared
         """
         importanceResults = permutation_importance(self.predictionModel.model, signalData, signalLabels, n_repeats=numTrials)
-        self.plotImportance(importanceResults, headerTitles)
+        self.plotImportance(importanceResults, featureLabels)
         
-        
-        # get importance
-        importance = self.predictionModel.model.feature_importances_
-        # summarize feature importance
-        for i,v in enumerate(importance):
-            if headerTitles:
-                i = headerTitles[i]
-                print('%s Weight: %.5g' % (str(i),v))
-        # Plot feature importance
-        plt.figure(figsize=(12, 8))
-        freq_series = pd.Series(importance)
-        ax = freq_series.plot(kind="bar")
-        
-        # Specify Figure Aesthetics
-        ax.set_title("Feature Importance in Model")
-        ax.set_xlabel("Feature")
-        ax.set_ylabel("Feature Importance")
-        
-        # Set X-Labels
-        if headerTitles:
-            ax.set_xticklabels(headerTitles)
-            self.add_value_labels(ax)
-        # Show Plot
-        name = "Feature Importance"
-        plt.savefig(self.saveDataFolder + name + " " + self.modelType + ".png", dpi=150, bbox_inches='tight')
-        pyplot.show()
-        
+        if self.modelType == "RF":
+            # get importance
+            importance = self.predictionModel.model.feature_importances_
+            # summarize feature importance
+            for i,v in enumerate(importance):
+                if featureLabels:
+                    i = featureLabels[i]
+                    print('%s Weight: %.5g' % (str(i),v))
+            # Plot feature importance
+            plt.figure(figsize=(12, 8))
+            freq_series = pd.Series(importance)
+            ax = freq_series.plot(kind="bar")
+            
+            # Specify Figure Aesthetics
+            ax.set_title("Feature Importance in Model")
+            ax.set_xlabel("Feature")
+            ax.set_ylabel("Feature Importance")
+            
+            # Set X-Labels
+            if featureLabels:
+                ax.set_xticklabels(featureLabels)
+                self.add_value_labels(ax)
+            # Show Plot
+            name = "Feature Importance"
+            plt.savefig(self.saveDataFolder + name + " " + self.modelType + ".png", dpi=150, bbox_inches='tight')
+            pyplot.show()
+            
+            explainer = shap.TreeExplainer(self.predictionModel.model)
+            shap_values = explainer.shap_values(signalData)
+            
+            shap.summary_plot(shap_values, signalData, plot_type="bar")
+            
+            shap.summary_plot(shap_values, signalData)
+        elif featureLabels:
+            # Make Output Folder for SHAP Values
+            os.makedirs(self.saveDataFolder + "SHAP Values/", exist_ok=True)
+            # Create Panda DataFrame to Match Input Type for SHAP
+            testingDataPD = pd.DataFrame(Testing_Data, columns = featureLabels)
+            
+            # Calculate Shap Values
+            explainer = shap.KernelExplainer(self.predictionModel.model.predict, testingDataPD)
+            shap_values = explainer.shap_values(testingDataPD, nsamples=len(signalData))
+            
+            # More General Explainer
+            explainerGeneral = shap.Explainer(self.predictionModel.model.predict, testingDataPD)
+            shap_valuesGeneral = explainerGeneral(testingDataPD)
+            
+            
+            # Specify Indivisual Sharp Parameters
+            dataPoint = 10
+            featurePoint = 0
+            
+            # Summary Plot
+            name = "Summary Plot"
+            summaryPlot = plt.figure()
+            shap.summary_plot(shap_values, testingDataPD)
+            summaryPlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
+            
+            # Dependance Plot
+            name = "Dependance Plot"
+            dependancePlot, dependanceAX = plt.subplots()
+            shap.dependence_plot(featurePoint, shap_values, features = testingDataPD, feature_names = featureLabels, ax = dependanceAX)
+            dependancePlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
+            
+            # Indivisual Force Plot
+            name = "Indivisual Force Plot"
+            forcePlot = shap.force_plot(explainer.expected_value, shap_values[dataPoint,:], features = np.round(testingDataPD.iloc[dataPoint,:], 5), feature_names = featureLabels, matplotlib = True, show = False)
+            forcePlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
+            
+            # Full Force Plot. NOTE: CANNOT USE matplotlib = True to See
+            name = "Full Force Plot"
+            fullForcePlot = shap.force_plot(explainer.expected_value, shap_values, features = testingDataPD, feature_names = featureLabels, matplotlib = False, show = True)
+            shap.save_html(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".htm", fullForcePlot)
+            
+            # WaterFall Plot
+            name = "Waterfall Plot"
+            waterfallPlot = plt.figure()
+            #shap.plots._waterfall.waterfall_legacy(explainer.expected_value, shap_values[0dataPoint], feature_names = featureLabels, max_display = len(featureLabels), show = True)
+            shap.plots.waterfall(shap_valuesGeneral[dataPoint],  max_display = len(featureLabels), show = True)
+            waterfallPlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
+ 
+            # Indivisual Decision Plot
+            misclassified = Testing_Labels != self.predictionModel.model.predict(Testing_Data)
+            name = "Indivisual Decision Plot"
+            decisionPlot = plt.figure()
+            shap.decision_plot(explainer.expected_value, shap_values[dataPoint,:], features = testingDataPD.iloc[dataPoint,:], feature_names = featureLabels, feature_order = "importance", highlight = misclassified[dataPoint])
+            decisionPlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
+            
+            # Decision Plot
+            name = "Decision Plot"
+            decisionPlotOne = plt.figure()
+            shap.decision_plot(explainer.expected_value, shap_values, features = testingDataPD, feature_names = featureLabels, feature_order = "importance", highlight = misclassified)
+            decisionPlotOne.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
+            
+            # Bar Plot
+            name = "Bar Plot"
+            barPlot = plt.figure()
+            shap.plots.bar(shap_valuesGeneral, max_display = len(featureLabels), show = True)
+            barPlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
+
+            # HeatMap Plot
+            name = "Heatmap Plot"
+            heatmapPlot = plt.figure()
+            shap.plots.heatmap(shap_valuesGeneral, max_display = len(featureLabels), show = True, instance_order=shap_valuesGeneral.sum(1))
+            heatmapPlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
+                
+            # Scatter Plot
+            name = "Scatter Plot"
+            scatterPlot, scatterAX = plt.subplots()
+            shap.plots.scatter(shap_valuesGeneral[:, featureLabels[featurePoint]], color = shap_valuesGeneral[:, featureLabels[featurePoint+1]], ax = scatterAX)
+            scatterPlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
+            
+            # Monitoring Plot (The Function is a Beta Test As of 11-2021)
+            if len(Testing_Data) > 150:  # They Skip Every 50 Points I Believe
+                name = "Monitor Plot"
+                monitorPlot = plt.figure()
+                shap.monitoring_plot(0, shap_values, features = testingDataPD, feature_names = featureLabels)
+                monitorPlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
+                        
     def add_value_labels(self, ax, spacing=5):
         """Add labels to the end of each bar in a bar chart.
     
