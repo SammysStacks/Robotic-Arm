@@ -52,8 +52,9 @@ class predictionModelHead:
         self.map2D = []
         # Get Prediction Model
         self.predictionModel = self.getModel(modelType, modelPath, dataDim)
-        # Create Output File Directory to Save Data: If None
-        os.makedirs(self.saveDataFolder, exist_ok=True)
+        if saveDataFolder:
+            # Create Output File Directory to Save Data: If None
+            os.makedirs(self.saveDataFolder, exist_ok=True)
         
     
     def getModel(self, modelType, modelPath, dataDim):
@@ -71,8 +72,9 @@ class predictionModelHead:
             svmType = "poly"
             predictionModel = SVM.SVM(modelPath = modelPath, modelType = svmType, polynomialDegree = 3)
             # Section off SVM Data Analysis Into the Type of Kernels
-            self.saveDataFolder += svmType +"/"
-            os.makedirs(self.saveDataFolder, exist_ok=True)
+            if self.saveDataFolder:
+                self.saveDataFolder += svmType +"/"
+                os.makedirs(self.saveDataFolder, exist_ok=True)
         else:
             print("No Matching Machine Learning Model was Found for '", modelType, "'");
             sys.exit()
@@ -87,15 +89,44 @@ class predictionModelHead:
             
         signalData = np.array(signalData); signalLabels = np.array(signalLabels)
         # Split the Data into Training and Validation Sets
-        Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabels, test_size=0.4, shuffle= True, stratify=signalLabels)
+        Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabels, test_size=0.33, shuffle= True, stratify=signalLabels)
         
         if self.modelType in ['RF', 'LR', 'KNN', 'SVM']:
             # Train the NN with the Training Data
-            self.predictionModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels)
+            featureLabelsCOPY = featureLabels.copy()
+            signalDataCOPY = signalData.copy()
+            means = []
+            for i in range(1):
+                meansChannel = []
+                for channelInd in [[]]:
+                    featureLabels = featureLabelsCOPY.copy()
+                    signalData = signalDataCOPY.copy()
+                    for i in range(int(len(featureLabels)/4) - 1, -1, -1):
+                        for delCol in channelInd:
+                            signalData = np.delete(signalData, delCol + i*4, 1)
+                            featureLabels = list(np.delete(featureLabels, delCol + i*4, 0))
+                    modelScore = []
+                    for _ in range(100):
+                        Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabels, test_size=0.33, shuffle= True, stratify=signalLabels)
+                        modelScore.append(self.predictionModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels))
+                #    print("Average Test Score:", np.round(np.mean(modelScore)*100, 3), "+/-", np.round(np.std(modelScore, ddof=1)*100, 3))
+                    print(featureLabels, len(featureLabels))
+                    plt.hist(modelScore, 100, facecolor='blue', alpha=0.5)
+                    from scipy import stats
+                    ae, loce, scalee = stats.skewnorm.fit(modelScore)
+                    print(loce*100, "\n")
+                    meansChannel.append(np.round(loce*100, 2))
+                means.append(meansChannel)
+            means = np.array(means)
+            print(means)
+            meansMedian = np.median(means, axis=0)
+            for mean in meansMedian:
+                print(mean)
+            #sys.exit()
             # Label Accuracy
             self.accuracyDistributionPlot(signalData, signalLabels,  self.predictionModel.predictData(signalData), self.gestureClasses)
             # Extract Feature Importance
-            self.featureImportance(signalData, signalLabels, Testing_Data, Testing_Labels, featureLabels = featureLabels, numTrials = 100)
+            self.featureImportance(signalData, signalLabels, signalData, signalLabels, featureLabels = featureLabels, numTrials = 100)
             # Plot Model (Right Now it Only Works for 6 Gestures; Just Change the Labeling of the Classes in cmap)
             if self.numClasses == 6:
                 self.plot3DLabels(signalData, signalLabels)
@@ -331,29 +362,38 @@ class predictionModelHead:
             shap.summary_plot(shap_values, signalData, plot_type="bar")
             
             shap.summary_plot(shap_values, signalData)
-        elif featureLabels:
+        
+        
+        if featureLabels:
             # Make Output Folder for SHAP Values
             os.makedirs(self.saveDataFolder + "SHAP Values/", exist_ok=True)
             # Create Panda DataFrame to Match Input Type for SHAP
             testingDataPD = pd.DataFrame(Testing_Data, columns = featureLabels)
             
-            # Calculate Shap Values
-            explainer = shap.KernelExplainer(self.predictionModel.model.predict, testingDataPD)
-            shap_values = explainer.shap_values(testingDataPD, nsamples=len(signalData))
-            
             # More General Explainer
             explainerGeneral = shap.Explainer(self.predictionModel.model.predict, testingDataPD)
             shap_valuesGeneral = explainerGeneral(testingDataPD)
             
+            # MultiClass (Only For Tree)
+            if self.modelType == "RF":
+                explainer = shap.TreeExplainer(self.predictionModel.model)
+                shap_values = explainer.shap_values(testingDataPD)
+            else:
+                # Calculate Shap Values
+                explainer = shap.KernelExplainer(self.predictionModel.model.predict, testingDataPD)
+                shap_values = explainer.shap_values(testingDataPD, nsamples=len(signalData))
             
             # Specify Indivisual Sharp Parameters
             dataPoint = 10
-            featurePoint = 0
+            featurePoint = 2
             
             # Summary Plot
             name = "Summary Plot"
             summaryPlot = plt.figure()
-            shap.summary_plot(shap_values, testingDataPD)
+            if self.modelType == "RF":
+                shap.summary_plot(shap_valuesGeneral, testingDataPD, plot_type="bar", class_names=self.gestureClasses, feature_names = featureLabels)
+            else:
+                shap.summary_plot(shap_valuesGeneral, testingDataPD, class_names=self.gestureClasses, feature_names = featureLabels)
             summaryPlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
             
             # Dependance Plot
@@ -381,10 +421,13 @@ class predictionModelHead:
  
             # Indivisual Decision Plot
             misclassified = Testing_Labels != self.predictionModel.model.predict(Testing_Data)
-            name = "Indivisual Decision Plot"
-            decisionPlot = plt.figure()
-            shap.decision_plot(explainer.expected_value, shap_values[dataPoint,:], features = testingDataPD.iloc[dataPoint,:], feature_names = featureLabels, feature_order = "importance", highlight = misclassified[dataPoint])
-            decisionPlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
+            decisionFolder = self.saveDataFolder + "SHAP Values/Decision Plots/"
+            os.makedirs(decisionFolder, exist_ok=True) 
+            for dataPoint1 in range(min(50, len(testingDataPD))):
+                name = "Indivisual Decision Plot DataPoint Num " + str(dataPoint1)
+                decisionPlot = plt.figure()
+                shap.decision_plot(explainer.expected_value, shap_values[dataPoint1,:], features = testingDataPD.iloc[dataPoint1,:], feature_names = featureLabels, feature_order = "importance", highlight = misclassified[dataPoint1])
+                decisionPlot.savefig(decisionFolder + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
             
             # Decision Plot
             name = "Decision Plot"
@@ -405,16 +448,20 @@ class predictionModelHead:
             heatmapPlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
                 
             # Scatter Plot
-            name = "Scatter Plot"
-            scatterPlot, scatterAX = plt.subplots()
-            shap.plots.scatter(shap_valuesGeneral[:, featureLabels[featurePoint]], color = shap_valuesGeneral[:, featureLabels[featurePoint+1]], ax = scatterAX)
-            scatterPlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
+            scatterFolder = self.saveDataFolder + "SHAP Values/Scatter Plots/"
+            os.makedirs(scatterFolder, exist_ok=True)
+            for featurePoint1 in range(len(featureLabels)):
+                for featurePoint2 in range(len(featureLabels)):
+                    name = "Scatter Plot (" + featureLabels[featurePoint1] + " VS " + featureLabels[featurePoint2] + ")" 
+                    scatterPlot, scatterAX = plt.subplots()
+                    shap.plots.scatter(shap_valuesGeneral[:, featureLabels[featurePoint1]], color = shap_valuesGeneral[:, featureLabels[featurePoint2]], ax = scatterAX)
+                    scatterPlot.savefig(scatterFolder + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
             
             # Monitoring Plot (The Function is a Beta Test As of 11-2021)
             if len(Testing_Data) > 150:  # They Skip Every 50 Points I Believe
                 name = "Monitor Plot"
                 monitorPlot = plt.figure()
-                shap.monitoring_plot(0, shap_values, features = testingDataPD, feature_names = featureLabels)
+                shap.monitoring_plot(featurePoint, shap_values, features = testingDataPD, feature_names = featureLabels)
                 monitorPlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
                         
     def add_value_labels(self, ax, spacing=5):

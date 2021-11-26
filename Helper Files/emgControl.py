@@ -58,7 +58,7 @@ if __name__ == "__main__":
     handSerialNum = None   # Arduino Serial Number for the Robotic Hand Control. Leave None if NOT Controlling the Hand
     numDataPoints = 50000   # The Number of Points to Stream into the Arduino
     numTimePoints = 6000    # The Number of Data Points to Display to the User at a Time; My beta-Test Used 2000 Points
-    moveDataFinger = 5000    # The Number of NEW Data Points to Analyze at a Time; My Beta-Test Used 200 Points with Plotting (100 Without). This CAN Change How SOME Peaks are Found (be Careful)
+    moveDataFinger = 50    # The Number of NEW Data Points to Analyze at a Time; My Beta-Test Used 200 Points with Plotting (100 Without). This CAN Change How SOME Peaks are Found (be Careful)
     samplingFreq = None     # The Average Number of Points Steamed Into the Arduino Per Second; If NONE Given, Algorithm will Calculate Based on Initial Data
     numChannels = 4         # The Number of Arduino Channels with EMG Signals Read in; My Beta-Test Used 4 Channels
     # Specify the Type of Movements to Learn
@@ -71,14 +71,14 @@ if __name__ == "__main__":
 
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
     streamArduinoData = False  # Stream in Data from the Arduino and Analyze; Input 'testModel' = True to Apply Learning
-    readDataFromExcel = False   # Analyze Data from Excel File called 'testDataExcelFile' on Sheet Number 'testSheetNum'
+    readDataFromExcel = True   # Analyze Data from Excel File called 'testDataExcelFile' on Sheet Number 'testSheetNum'
     reAnalyzePeaks = False     # Read in ALL Data Under 'trainingDataExcelFolder', and Reanalyze Peaks (THIS EDITS EXCEL DATA IN PLACE!; DONT STOP PROGRAM MIDWAY)
-    trainModel = True         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
+    trainModel = False         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
     
     # User Options During the Run: Any Number Can be True
-    plotStreamedData = False    # Graph the Data to Show Incoming Signals + Analysis
+    plotStreamedData = True    # Graph the Data to Show Incoming Signals + Analysis
     saveModel = False          # Save the Machine Learning Model for Later Use
-    testModel = False          # Apply the Learning Algorithm to Decode the Signals
+    testModel = True          # Apply the Learning Algorithm to Decode the Signals
     saveData = False           # Saves the Data in 'readData.data' in an Excel Named 'saveExcelName' or map2D if Training
     
     # ---------------------------------------------------------------------- #
@@ -96,25 +96,28 @@ if __name__ == "__main__":
             
     # Instead of Arduino Data, Use Test Data from Excel File
     if readDataFromExcel:
-        testDataExcelFile = "../Output Data/EMG Data/Upper Back/2021-11-11/Samuel Solomon 2021-05-11 Round 2 copy.xlsx" # Path to the Test Data
+        testDataExcelFile = "../Output Data/EMG Data/Arm/May11 Test Results/New Analysis/Samuel Solomon 2021-05-11 Round 1 All 5 Features.xlsx" # Path to the Test Data
         testSheetNum = 5   # The Sheet/Tab Order (Zeroth/First/Second/Third) on the Bottom of the Excel Document
     
     # Use Previously Processed Data that was Saved; Extract Features for Training
     if reAnalyzePeaks or trainModel:
-        trainingDataExcelFolder = "../Output Data/EMG Data/Arm/May11 Test Results/New Analysis/With 1 Features/" # Path to the Training Data Folder; All .xlsx Data Used
+        trainingDataExcelFolder = "../Output Data/EMG Data/Arm/May11 Test Results/New Analysis/" # Path to the Training Data Folder; All .xlsx Data Used
 
     if trainModel or testModel and not reAnalyzePeaks:
         # Pick the Machine Learning Module to Use
         modelType = "KNN"  # Machine Learning Options: RF, LR, KNN, SVM
         modelPath = "./Machine Learning/Models/predictionModel_Arm_" + modelType + ".pkl" # Path to Model (Creates New if it Doesn't Exist)
-        saveDataFolder = trainingDataExcelFolder + "No Channel 4/" + modelType + "/"
+        if trainModel:
+            saveDataFolder = trainingDataExcelFolder + "Del/" + modelType + "/"
+        else:
+            saveDataFolder = None
         # Get the Machine Learning Module
         performMachineLearning = machineLearningMain.predictionModelHead(modelType, modelPath, dataDim = numChannels, gestureClasses = gestureClasses, saveDataFolder = saveDataFolder)
         predictionModel = performMachineLearning.predictionModel
         # Feature Labels
         featureLabels = []
         # ["peakAverage", "peakHeight", "peakVariance", "peakSTD", "maxSlope"]
-        for feature in ["peakHeight"]:
+        for feature in ["peakAverage", "peakHeight", "peakEnergy", "peakSTD", "maxSlope"]:
             for channel in range(1,5):
                 featureLabels.append(feature + " in Channel " + str(channel))
     else:
@@ -146,10 +149,13 @@ if __name__ == "__main__":
         # Extract the Data
         readData = excelData.readExcel(emgProtocol)
         signalData, signalLabels = readData.getTrainingData(trainingDataExcelFolder, numChannels, gestureClasses, mode='Train')
-        for i in range(0, -1, -1):
-            for delCol in [3]:
-                signalData = np.delete(signalData, delCol + i*4, 1)
-                featureLabels = list(np.delete(featureLabels, delCol + i*4, 0))
+        for i in range(4, -1, -1):
+            if i in [4,2]:
+                signalData = np.delete(signalData, [i*4+j for j in range(3,-1,-1)], 1)
+                featureLabels = list(np.delete(featureLabels, [i*4+j for j in range(3,-1,-1)], 0))
+        
+
+        #sys.exit()
         print("\nCollected Signal Data")
 
         # Train the Data on the Gestures

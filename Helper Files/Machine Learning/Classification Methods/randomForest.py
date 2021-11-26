@@ -68,10 +68,11 @@ class randomForest:
         self.model.fit(Training_Data, Training_Labels)
         # Score the Model
         if len(newData) > 0:
-            self.scoreModel(newData, newLabels, scoreType)
+            modelScore = self.scoreModel(newData, newLabels, scoreType)
+            return modelScore
     
     def scoreModel(self, signalData, signalLabels, scoreType = "Score:"):
-        print(scoreType, self.model.score(signalData, signalLabels))
+        return self.model.score(signalData, signalLabels)
         
         # Evaluate the model
     #    cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=5, random_state=1)

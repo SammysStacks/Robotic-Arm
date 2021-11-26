@@ -65,10 +65,11 @@ class SVM:
     def trainModel(self, Training_Data, Training_Labels, Testing_Data, Testing_Labels):  
         # Train the Model
         self.model.fit(Training_Data, Training_Labels)
-        self.scoreModel(Testing_Data, Testing_Labels)
+        modelScore = self.scoreModel(Testing_Data, Testing_Labels)
+        return modelScore
     
     def scoreModel(self, signalData, signalLabels):
-        print("Score:", self.model.score(signalData, signalLabels))
+        return self.model.score(signalData, signalLabels)
     
     def predictData(self, New_Data):
         # Predict Label based on new Data
