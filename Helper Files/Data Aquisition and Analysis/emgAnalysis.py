@@ -343,22 +343,24 @@ class emgProtocol:
                 self.lastAnalyzedGroup += 1; 
                     
             # If the Features are Good, Move the Robot
-            if predictionModel:
+            if True or predictionModel:
                 if True and plotStreamedData:
-                    maxDelay = 0
+                    maxDelay = 0; leftBase = 0
                     for channelInd in range(self.numChannels):
-                        leftBase = self.timeDelayIndices[channelInd][currentGroupInd]
-                        leftBase = self.xPeaksList[channelInd][currentGroupInd]
-                        if leftBase:
-                            getY = self.yPeaksList[channelInd][currentGroupInd][0]
-                            if maxDelay < self.xDataRMS[-1] - leftBase[0]:
-                                maxDelay = self.xDataRMS[-1] - leftBase[0]
-                            self.timeDelayPlotsRMS[channelInd].set_data([leftBase[0], self.xDataRMS[-1]], [getY, getY])
-                            self.timeDelayPlotsRaw[channelInd].set_data([leftBase[0], self.xDataRMS[-1]], [2.5, 2.5])
-                        else:
-                            self.timeDelayPlotsRMS[channelInd].set_data([],[])
-                            self.timeDelayPlotsRaw[channelInd].set_data([],[])
-                    print("Delay Time", maxDelay)
+                        leftBaseI = self.timeDelayIndices[channelInd][currentGroupInd]
+                        leftBaseI = self.xPeaksList[channelInd][currentGroupInd]
+                        if leftBaseI:
+                            if maxDelay < self.xDataRMS[-1] - leftBaseI[0]:
+                                maxDelay = self.xDataRMS[-1] - leftBaseI[0]
+                            if not leftBase or leftBaseI[0] < leftBase:
+                                leftBase = leftBaseI[0]
+                    for channelInd in range(self.numChannels):
+                        self.timeDelayPlotsRMS[channelInd].set_data([leftBase, leftBase, self.xDataRMS[-1], self.xDataRMS[-1], leftBase], [0.01, .49, .49, 0.01, 0.01])
+                        self.timeDelayPlotsRaw[channelInd].set_data([leftBase, leftBase, self.xDataRMS[-1], self.xDataRMS[-1], leftBase], [0.1, 4.9, 4.9, 0.1, 0.1])
+                       # else:
+                       #     self.timeDelayPlotsRMS[channelInd].set_data([],[])
+                       #     self.timeDelayPlotsRaw[channelInd].set_data([],[])
+                    #print("Delay Time", maxDelay)
                 
                 # Full Feature Array
                 fullFeatureArray = []
@@ -370,7 +372,7 @@ class emgProtocol:
                             fullFeatureArray.append(self.featureList[channelInd][currentGroupInd][0][numFeatureInd])
                     
                 # Predict the Movement
-                self.predictMovement(fullFeatureArray, predictionModel, actionControl)
+                #self.predictMovement(fullFeatureArray, predictionModel, actionControl)
         # ------------------------------------------------------------------- #
 
 
@@ -570,7 +572,7 @@ class emgProtocol:
             #peakFeatures[-1].append(peakEnergy)
             # Minimize Group Seperation
             if not self.groupWidthRMS:
-                self.groupWidthRMS = (xData[xPointer] - xData[leftBaselineIndex])/10
+                self.groupWidthRMS = (xData[xPointer] - xData[leftBaselineIndex])/3
                 self.groupWidthRMSPoints = xPointer - leftBaselineIndex
                 print("\tSetting Group Width", self.groupWidthRMS)
             
