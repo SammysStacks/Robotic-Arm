@@ -64,7 +64,7 @@ class emgProtocol:
             # Initialize Plots
             matplotlib.use('Qt5Agg') # Set Plotting GUI Backend            
             self.initPlotPeaks()    # Create the Plots
-    
+            
     def initParamsFromSamplingRate(self):
         self.Wp = 2*math.pi*self.f1/self.samplingFreq
         self.Ws = 2*math.pi*self.f3/self.samplingFreq
@@ -484,10 +484,8 @@ class emgProtocol:
             RMSData.append(np.linalg.norm(inputWindow, ord=2)/normalization)
             # Add to xData
             if channelIndex == 0:
-                #timeDiff = self.data['timePoints'][dataPointerRMS + (i+1)*stepSize+1] - self.data['timePoints'][dataPointerRMS + i*stepSize]
-                #self.xDataRMS.append(self.xDataRMS[-1] + timeDiff if self.xDataRMS else timeDiff)
                  self.xDataRMS.append(self.data['timePoints'][dataPointerRMS + i*stepSize + rmsWindow - 1])
-        
+                 
         return RMSData    
 
 
@@ -572,7 +570,7 @@ class emgProtocol:
             #peakFeatures[-1].append(peakEnergy)
             # Minimize Group Seperation
             if not self.groupWidthRMS:
-                self.groupWidthRMS = (xData[xPointer] - xData[leftBaselineIndex])/3
+                self.groupWidthRMS = (xData[xPointer] - xData[leftBaselineIndex])/2
                 self.groupWidthRMSPoints = xPointer - leftBaselineIndex
                 print("\tSetting Group Width", self.groupWidthRMS)
             

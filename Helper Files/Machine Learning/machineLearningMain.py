@@ -11,6 +11,7 @@ import sys
 import numpy as np
 import collections
 import pandas as pd
+from scipy import stats
 # Modules for Plotting
 import matplotlib
 from matplotlib import pyplot
@@ -92,37 +93,23 @@ class predictionModelHead:
         Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabels, test_size=0.33, shuffle= True, stratify=signalLabels)
         
         if self.modelType in ['RF', 'LR', 'KNN', 'SVM']:
-            # Train the NN with the Training Data
-            featureLabelsCOPY = featureLabels.copy()
-            signalDataCOPY = signalData.copy()
+            # Train the Model Multiple Times
             means = []
-            for i in range(1):
-                meansChannel = []
-                for channelInd in [[]]:
-                    featureLabels = featureLabelsCOPY.copy()
-                    signalData = signalDataCOPY.copy()
-                    for i in range(int(len(featureLabels)/4) - 1, -1, -1):
-                        for delCol in channelInd:
-                            signalData = np.delete(signalData, delCol + i*4, 1)
-                            featureLabels = list(np.delete(featureLabels, delCol + i*4, 0))
-                    modelScore = []
-                    for _ in range(100):
-                        Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabels, test_size=0.33, shuffle= True, stratify=signalLabels)
-                        modelScore.append(self.predictionModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels))
-                #    print("Average Test Score:", np.round(np.mean(modelScore)*100, 3), "+/-", np.round(np.std(modelScore, ddof=1)*100, 3))
-                    print(featureLabels, len(featureLabels))
-                    plt.hist(modelScore, 100, facecolor='blue', alpha=0.5)
-                    from scipy import stats
-                    ae, loce, scalee = stats.skewnorm.fit(modelScore)
-                    print(loce*100, "\n")
-                    meansChannel.append(np.round(loce*100, 2))
-                means.append(meansChannel)
-            means = np.array(means)
-            print(means)
-            meansMedian = np.median(means, axis=0)
-            for mean in meansMedian:
-                print(mean)
-            #sys.exit()
+            for _ in range(3):
+                modelScore = []
+                # Taking the Average Score Each Time
+                for _ in range(100):
+                    # Train the Model with the Training Data
+                    Training_Data, Testing_Data, Training_Labels, Testing_Labels = train_test_split(signalData, signalLabels, test_size=0.33, shuffle= True, stratify=signalLabels)
+                    modelScore.append(self.predictionModel.trainModel(Training_Data, Training_Labels, Testing_Data, Testing_Labels))
+                # Display the Spread of Scores
+                plt.hist(modelScore, 100, facecolor='blue', alpha=0.5)
+                # Fit the Mean Distribution and Save the Mean
+                ae, loce, scalee = stats.skewnorm.fit(modelScore)
+                means.append(np.round(loce*100, 2))
+            # Take the Median Score as the True Score
+            meanScore = np.median(means, axis=0)
+            print("Mean Testing Accuracy:", meanScore)
             # Label Accuracy
             self.accuracyDistributionPlot(signalData, signalLabels,  self.predictionModel.predictData(signalData), self.gestureClasses)
             # Extract Feature Importance

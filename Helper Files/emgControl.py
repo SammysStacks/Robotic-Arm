@@ -70,13 +70,13 @@ if __name__ == "__main__":
     #gestureClasses = np.char.lower(["Back", "Left", "Open Chest", "Shrug", "Right 45", "Right 90", "Right 135", "Right 180", "Front 45", "Front 90", "Front 135", "Front 180"])  # Define Labels as Array
 
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
-    streamArduinoData = True  # Stream in Data from the Arduino and Analyze; Input 'testModel' = True to Apply Learning
-    readDataFromExcel = False   # Analyze Data from Excel File called 'testDataExcelFile' on Sheet Number 'testSheetNum'
+    streamArduinoData = False  # Stream in Data from the Arduino and Analyze; Input 'testModel' = True to Apply Learning
+    readDataFromExcel = True   # Analyze Data from Excel File called 'testDataExcelFile' on Sheet Number 'testSheetNum'
     reAnalyzePeaks = False     # Read in ALL Data Under 'trainingDataExcelFolder', and Reanalyze Peaks (THIS EDITS EXCEL DATA IN PLACE!; DONT STOP PROGRAM MIDWAY)
     trainModel = False         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
     
     # User Options During the Run: Any Number Can be True
-    plotStreamedData = True    # Graph the Data to Show Incoming Signals + Analysis
+    plotStreamedData = False    # Graph the Data to Show Incoming Signals + Analysis
     saveModel = False          # Save the Machine Learning Model for Later Use
     testModel = True          # Apply the Learning Algorithm to Decode the Signals
     saveData = False           # Saves the Data in 'readData.data' in an Excel Named 'saveExcelName' or map2D if Training
@@ -149,18 +149,10 @@ if __name__ == "__main__":
         # Extract the Data
         readData = excelData.readExcel(emgProtocol)
         signalData, signalLabels = readData.getTrainingData(trainingDataExcelFolder, numChannels, gestureClasses, mode='Train')
-        for i in range(4, -1, -1):
-            if i in [4,2]:
-                signalData = np.delete(signalData, [i*4+j for j in range(3,-1,-1)], 1)
-                featureLabels = list(np.delete(featureLabels, [i*4+j for j in range(3,-1,-1)], 0))
-        
-
-        #sys.exit()
         print("\nCollected Signal Data")
 
         # Train the Data on the Gestures
         performMachineLearning.trainModel(signalData, signalLabels, featureLabels = featureLabels)
-        sys.exit()
         # Save Signals and Labels
         if len(performMachineLearning.map2D) != 0:
             saveInputs = excelData.saveExcel(numChannels, numChannels)
