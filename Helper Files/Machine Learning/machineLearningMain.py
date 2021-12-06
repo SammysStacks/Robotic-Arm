@@ -372,8 +372,31 @@ class predictionModelHead:
             
             # Specify Indivisual Sharp Parameters
             dataPoint = 10
-            featurePoint = 2
+            featurePoint = 20
             
+            
+            featureLabels = blinkFeatures
+            testingDataPD = pd.DataFrame(Testing_Data, columns = featureLabels)
+            explainerGeneral = shap.Explainer(model.predict, testingDataPD)
+            shap_valuesGeneral = explainerGeneral(testingDataPD)
+            
+            shap.summary_plot(shap_valuesGeneral, testingDataPD, class_names=[0,1], feature_names = featureLabels)
+            shap.plots.bar(shap_valuesGeneral, max_display = len(featureLabels), show = True)
+            
+            explainer = shap.KernelExplainer(model.predict, testingDataPD)
+            shap_values = explainer.shap_values(testingDataPD, nsamples=len(signalData))
+                
+            misclassified = Testing_Labels != model.predict(Testing_Data)
+            shap.summary_plot(shap_valuesGeneral, testingDataPD, class_names=[0,1], feature_names = featureLabels)
+            shap.dependence_plot(featurePoint, shap_values, features = testingDataPD, feature_names = featureLabels)
+            forcePlot = shap.force_plot(explainer.expected_value, shap_values[dataPoint,:], features = np.round(testingDataPD.iloc[dataPoint,:], 5), feature_names = featureLabels, matplotlib = True, show = False)
+            fullForcePlot = shap.force_plot(explainer.expected_value, shap_values, features = testingDataPD, feature_names = featureLabels, matplotlib = False, show = True)
+            shap.plots.waterfall(shap_valuesGeneral[0],  max_display = len(featureLabels), show = True)
+            shap.decision_plot(explainer.expected_value, shap_values, features = testingDataPD, feature_names = featureLabels, feature_order = "importance", highlight = misclassified)
+            shap.plots.bar(shap_valuesGeneral, max_display = len(featureLabels), show = True)
+            shap.plots.heatmap(shap_valuesGeneral, max_display = len(featureLabels), show = True, instance_order=shap_valuesGeneral.sum(1))
+            shap.monitoring_plot(featurePoint, shap_values, features = testingDataPD, feature_names = featureLabels)
+
             # Summary Plot
             name = "Summary Plot"
             summaryPlot = plt.figure()

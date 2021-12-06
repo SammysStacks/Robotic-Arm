@@ -195,7 +195,7 @@ class Neural_Network:
         # Model Layers
         #model.add(tf.keras.layers.Reshape((1,4)))
         #model.add(tf.keras.layers.LSTM(256))
-        self.model.add(tf.keras.layers.Dense(units=4, activation='sigmoid'))
+        self.model.add(tf.keras.layers.Dense(units=dataDim, activation='sigmoid'))
         #model.add(tf.keras.layers.Dense(units=8, activation=tf.nn.tanh))
         #model.add(tf.keras.layers.Dense(units=12, activation=tf.nn.tanh))
         #model.add(tf.keras.layers.Dense(units=8, activation=tf.nn.tanh))
