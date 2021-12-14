@@ -431,7 +431,7 @@ class predictionModelHead:
             # HeatMap Plot
             name = "Heatmap Plot"
             heatmapPlot = plt.figure()
-            shap.plots.heatmap(shap_valuesGeneral, max_display = len(featureLabels), show = True, instance_order=shap_valuesGeneral.sum(1))
+            shap.plots.heatmap(shap_valuesGeneral, max_display = min(20, len(featureLabels)), show = True, instance_order=shap_valuesGeneral.sum(1))
             heatmapPlot.savefig(self.saveDataFolder + "SHAP Values/" + name + " " + self.modelType + ".png", bbox_inches='tight', dpi=300)
                 
             # Scatter Plot
