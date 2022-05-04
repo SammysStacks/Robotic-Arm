@@ -240,6 +240,24 @@ class emgArduinoRead(emgProtocol):
         if self.guiApp:
             self.guiApp.handArduino = self.handArduino
             self.guiApp.initiateRoboticMovement()
+            
+    def controlRobotManually(self, numPointsRead, controlTimeSeconds, actionControl=None):
+        # Set Up Hand Arduino if Needed
+        if self.handArduino:
+            self.handArduino.readAll() # Throw Out Initial Readings.
+            # Set Up Laser Reading
+            threading.Thread(target = self.distanceRead, args = (actionControl, numPointsRead), daemon=True).start()
+            
+        # Wait while the user is controlling the device
+        time.sleep(controlTimeSeconds)
+        
+        # Close and reset everything back to the starting point.
+        if self.handArduino:
+            self.handArduino.write(str.encode('s0')) # turn off the laser
+            self.handArduino.close()
+        if self.guiApp:
+            self.guiApp.handArduino = None
+            self.guiApp.resetButton()        
 
     def streamEMGData(self, numPointsRead, predictionModel = None, actionControl=None, numTrashReads=500, numPointsPerRead=400):
         """Obtain `numPointsRead` data points from an Arduino stream"""
@@ -255,7 +273,7 @@ class emgArduinoRead(emgProtocol):
             self.handArduino.readAll() # Throw Out Initial Readings
             # Set Up Laser Reading
             threading.Thread(target = self.distanceRead, args = (actionControl, numPointsRead), daemon=True).start()
-
+            
         try:
             readBuffer = b""; dataFinger = 0
             # Loop Through and Read the Arduino Data in Real-Time
@@ -292,7 +310,6 @@ class emgArduinoRead(emgProtocol):
         if self.guiApp:
             self.guiApp.handArduino = None
             self.guiApp.resetButton()
-
 
     def distanceRead(self, RoboArm, numPointsRead):
         print("In Distance Read")

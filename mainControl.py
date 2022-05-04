@@ -34,6 +34,7 @@
         $ conda install joblib
         $ conda install numpy
         $ conda install keras
+        $ conda install shap
         
     --------------------------------------------------------------------------
 """
@@ -86,10 +87,11 @@ if __name__ == "__main__":
     
     # Protocol Switches: Only One Can be True; Only the First True Variable Excecutes
     streamArduinoData = False  # Stream in Data from the Arduino and Analyze; Input 'testModel' = True to Apply Learning
+    useRoboticGUI = True       # Do not stream in data and control the robot using the GUI
     trainModel = False         # Read in ALL Data Under 'neuralNetworkFolder', and Train the Data
     
     # User Options During the Run: Any Number Can be True
-    plotStreamedData = True    # Graph the Data to Show Incoming Signals + Analysis
+    plotStreamedData = False   # Graph the Data to Show Incoming Signals + Analysis
     saveModel = False          # Save the Machine Learning Model for Later Use
     saveData = False           # Saves the Data in 'readData.data' in an Excel Named 'saveExcelName' or map2D if Training
     
@@ -97,23 +99,29 @@ if __name__ == "__main__":
     
     # Take Data from the Arduino and Save it as an Excel (For Later Use)
     if saveData:
-        saveExcelName = "Samuel Solomon 2021-10-06 Circles.xlsx"  # The Name of the Saved File
-        saveDataFolder = "../Output Data/EMG Data/"  # Data Folder to Save the Excel Data; MUST END IN '/'
-        # Speficy the eye Movement You Will Perform
-        currentMovement = "Up".lower() # Make Sure it is Lowercase
-        if currentMovement not in gestureClasses:
+        saveExcelName = "You Yu 11-12-2021 Finger Angles.xlsx"  # The Name of the Saved File
+        saveDataFolder = "../Output Data/EMG Data/Upper Back/2021-11-11/"  # Data Folder to Save the Excel Data; MUST END IN '/'
+        # Speficy the Movement You Will Perform
+        currentMovement = "Full Grab".lower() # Make Sure it is Lowercase
+        if currentMovement and currentMovement not in gestureClasses:
             print("The Gesture", "'" + currentMovement + "'", "is Not in", gestureClasses)
+    else:
+        saveDataFolder = None
+    
+    if useRoboticGUI:
+        controlTimeSeconds = 60*10
     
     # Specify Training Location
     if trainModel:
         trainDataExcelFolder = "../Input Data/Full Training Data/Lab Electrodes/Sam/May11/"  # Path to the Training Data Folder; All .xlsx Data Used
-
-    # Pick the Machine Learning Module to Use
-    modelType = "KNN"  # Machine Learning Options: NN, RF, LR, KNN, SVM
-    modelPath = "./Machine Learning Modules/Models/predictionModelKNNFull_SamArm1.pkl" # Path to Model (Creates New if it Doesn't Exist)
-    # Get the Machine Learning Module
-    performMachineLearning = machineLearningMain.predictionModelHead(modelType, modelPath, dataDim = numChannels, gestureClasses = gestureClasses)
-    predictionModel = performMachineLearning.predictionModel
+    
+    if streamArduinoData or trainModel:
+        # Pick the Machine Learning Module to Use
+        modelType = "KNN"  # Machine Learning Options: NN, RF, LR, KNN, SVM
+        modelPath = "./Machine Learning Modules/Models/predictionModelKNNFull_SamArm1.pkl" # Path to Model (Creates New if it Doesn't Exist)
+        # Get the Machine Learning Module
+        performMachineLearning = machineLearningMain.predictionModelHead(modelType, modelPath, dataDim = numChannels, gestureClasses = gestureClasses, saveDataFolder = saveDataFolder)
+        predictionModel = performMachineLearning.predictionModel
 
     # ---------------------------------------------------------------------- #
     #                EMG Program (Should Not Have to Edit)                   #
@@ -160,6 +168,31 @@ if __name__ == "__main__":
                     saveInputs.saveData(readData.data, readData.featureList, saveDataFolder, saveExcelName, sheetName, currentMovement)
                 else:
                     print("User Chose Not to Save the Data")
+        # ---------------------- Only Use Robotic GUI ----------------------- #
+        if useRoboticGUI:
+            # Initiate the UI
+            guiApp = GUI.Ui_MainWindow(handArduino = None)
+        
+            # Initiate the Robotic Control
+            robotControl = robotController.robotControl(handArduino = None, guiApp = guiApp)
+            robotControl.checkConnection()
+            
+            # Setup the Robot's Parameters and Initialize Home Position
+            robotControl.setRoboParams()  # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
+            robotControl.setRest()        # Sets the Rest Position to Current Start Position            
+            robotControl.powerUp("", fancyStart = True) # If mode = 'fancy', begin there. Then go to Home Position
+            
+            # Stream in EMG Arduino Data and Perform Gesture Recognition
+            arduinoRead = streamData.arduinoRead(emgSerialNum = None, handSerialNum = handSerialNum)
+            readData = streamData.emgArduinoRead(arduinoRead, numTimePoints, moveDataFinger, numChannels, samplingFreq, gestureClasses, plotStreamedData, guiApp = guiApp)
+            threading.Thread(target = readData.controlRobotManually, args = (numDataPoints, controlTimeSeconds, robotControl), daemon=True).start()
+            
+            # Start UI Popup
+            guiApp.app.exec_()
+            
+            # Power Down the Robot
+            robotControl.powerDown(setRest = False)
+            guiApp.resetButton()
         # ------------------------- Train ML Model -------------------------- #
         elif trainModel:
             # Create Portocol

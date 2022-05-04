@@ -27,6 +27,7 @@ from sklearn.model_selection import train_test_split
 import shap
 
 # Import Machine Learning Files
+sys.path.append('./Helper Files/Machine Learning/Classification Methods/')
 sys.path.append('./Machine Learning/Classification Methods/')
 sys.path.append('./Classification Methods/') # Folder with Machine Learning Files
 import neuralNetwork as NeuralNet       # Functions for Neural Network Algorithm

@@ -87,10 +87,10 @@ if __name__ == "__main__":
     if saveData:
         saveExcelName = "You Yu 11-12-2021 Finger Angles.xlsx"  # The Name of the Saved File
         saveDataFolder = "../Output Data/EMG Data/Upper Back/2021-11-11/"  # Data Folder to Save the Excel Data; MUST END IN '/'
-        # Speficy the eye Movement You Will Perform
-        eyeMovement = "Full Grab".lower() # Make Sure it is Lowercase
-        if eyeMovement and eyeMovement not in gestureClasses:
-            print("The Gesture", "'" + eyeMovement + "'", "is Not in", gestureClasses)
+        # Speficy the Movement You Will Perform
+        currentMovement = "Full Grab".lower() # Make Sure it is Lowercase
+        if currentMovement and currentMovement not in gestureClasses:
+            print("The Gesture", "'" + currentMovement + "'", "is Not in", gestureClasses)
     else:
         saveDataFolder = False
             
@@ -167,13 +167,13 @@ if __name__ == "__main__":
     if saveData and not trainModel and not reAnalyzePeaks:
         # Format Sheet Name
         sheetName = "Trial 1 - "  # If SheetName Already Exists, Increase Trial # by One
-        sheetName = sheetName + eyeMovement
+        sheetName = sheetName + currentMovement
         # Double Check to See if User Wants to Save the Data
         verifiedSave = input("Are you Sure you Want to Save the Data (Y/N): ")
         if verifiedSave.upper() == "Y":
             # Initialize Class to Save the Data and Save
             saveInputs = excelData.saveExcel(numChannels, numChannels)
-            saveInputs.saveData(emgProtocol.data, emgProtocol.featureList, saveDataFolder, saveExcelName, sheetName, eyeMovement)
+            saveInputs.saveData(emgProtocol.data, emgProtocol.featureList, saveDataFolder, saveExcelName, sheetName, currentMovement)
         else:
             print("User Chose Not to Save the Data")
 
