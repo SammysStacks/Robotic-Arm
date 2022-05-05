@@ -20,7 +20,7 @@ class Ui_MainWindow():
         
         # Basic Initial Variables
         self.HomePosition = [0, 5, 8, -5, -3]     # The initial position of robot arm
-        self.InitialPosition = [90,90,90,90,90]  # Initial position of robot fingers
+        self.InitialPosition = [90,90,90,90,90]   # Initial position of robot fingers
         self.k = 1 # k=2 for 2k screen, k=1 for 1080 screen
         self.f = 4 # f=0 for 2k screen, f=4 for 1080 screen
         
@@ -45,8 +45,8 @@ class Ui_MainWindow():
         self.robotControl = robotController.robotControl(handArduino = self.handArduino, guiApp = self)
         
         # Link the Gesture Buttons to Their Respective Functions
-        self.pushButton_g.clicked.connect(lambda: self.robotControl.moveLeft())
-        self.pushButton_r.clicked.connect(lambda: self.robotControl.moveRight())
+        self.pushButton_g.clicked.connect(lambda: self.robotControl.grabHand())
+        self.pushButton_r.clicked.connect(lambda: self.robotControl.release())
         self.pushButton_down.clicked.connect(lambda: self.robotControl.moveDown())
         self.pushButton_up.clicked.connect(lambda: self.robotControl.moveUp())
         self.Reset_arm.clicked.connect(lambda: self.robotControl.goHome())
