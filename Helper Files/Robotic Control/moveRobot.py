@@ -20,7 +20,7 @@ class initiateRobotArm():
         self.actuID = [0x01, 0x02, 0x03, 0x04, 0x05]
         
         # Define Common Positions
-        self.HomePos = [0, 5, 8, -3, 0]   # Set the Start/End Home Position
+        self.HomePos = [0, 5, 8, -5, -3]   # Set the Start/End Home Position
         self.FancyPos = [-1, 6, 8, -5, 0] # Set the Start/End Home Position
         self.RestPos = [-1.2004829049110413, 0.2907487154006958, 1.065185546875, 1.10516357421875, 0.00054931640625] # Set the Start/End Home Position
         self.posError = 0.0007

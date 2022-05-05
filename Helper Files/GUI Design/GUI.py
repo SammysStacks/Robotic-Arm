@@ -19,7 +19,7 @@ class Ui_MainWindow():
         self.app = QtWidgets.QApplication(sys.argv)
         
         # Basic Initial Variables
-        self.HomePosition = [0, 5, 8, -3, 0]     # The initial position of robot arm
+        self.HomePosition = [0, 5, 8, -5, -3]     # The initial position of robot arm
         self.InitialPosition = [90,90,90,90,90]  # Initial position of robot fingers
         self.k = 1 # k=2 for 2k screen, k=1 for 1080 screen
         self.f = 4 # f=0 for 2k screen, f=4 for 1080 screen
