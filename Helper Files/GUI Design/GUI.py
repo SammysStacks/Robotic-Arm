@@ -19,8 +19,8 @@ class Ui_MainWindow():
         self.app = QtWidgets.QApplication(sys.argv)
         
         # Basic Initial Variables
-        self.HomePosition = [-1,-10,5,12,0]     # The initial position of robot arm
-        self.InitialPosition = [90,90,90,90,90] # Initial position of robot fingers
+        self.HomePosition = [0, 5, 8, -3, 0]     # The initial position of robot arm
+        self.InitialPosition = [90,90,90,90,90]  # Initial position of robot fingers
         self.k = 1 # k=2 for 2k screen, k=1 for 1080 screen
         self.f = 4 # f=0 for 2k screen, f=4 for 1080 screen
         
@@ -45,11 +45,12 @@ class Ui_MainWindow():
         self.robotControl = robotController.robotControl(handArduino = self.handArduino, guiApp = self)
         
         # Link the Gesture Buttons to Their Respective Functions
-        self.pushButton_g.clicked.connect(lambda: self.robotControl.grabHand())
-        self.pushButton_r.clicked.connect(lambda: self.robotControl.releaseHand())
+        self.pushButton_g.clicked.connect(lambda: self.robotControl.moveLeft())
+        self.pushButton_r.clicked.connect(lambda: self.robotControl.moveRight())
         self.pushButton_down.clicked.connect(lambda: self.robotControl.moveDown())
         self.pushButton_up.clicked.connect(lambda: self.robotControl.moveUp())
-        
+        self.Reset_arm.clicked.connect(lambda: self.robotControl.goHome())
+
     def setupUi(self):
         self.MainWindow.setObjectName("MainWindow")
         self.MainWindow.resize(800*self.k, 750*self.k)
@@ -277,7 +278,6 @@ class Ui_MainWindow():
         self.laser_on.clicked.connect(self.click_Laser_On)
         self.laser_off.clicked.connect(self.click_Laser_Off)
         self.pushButton_reset.clicked.connect(self.resetButton)
-        
     
     def resetButton(self):
         print("Resetting")

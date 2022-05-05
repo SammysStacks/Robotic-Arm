@@ -18,6 +18,16 @@
     Should Line Up On the Axis From the hand to the Elbow (If Using Lower Arm).
     Provide Decent Spacing Between the Electrodes (Noticeable Gap)
     
+    Robotic Control Note: 
+        
+    The input values for the robotic arm MAY be different for you.
+    If you run this code and the arm moves to  bad position, please edit
+    './Helper Files/Robotic Control/moveRobot.py' file. In particular, you
+    should edit the first class's (initiateRobotArm) init method. Specifically,
+    the homePos and FancyPos attributes. They are an array of 5 numbers corresponding
+    to the actuators on the Innfos robot. Innfos has already changed their name to
+    Minta and may make further edits to the robot in the future.
+    
     HardWare Processing:
     The Code Below Used the Following Electronic Material from Olimex:  
         Circuit Board: https://www.olimex.com/Products/Duino/Shields/SHIELD-EKG-EMG/open-source-hardware
@@ -180,7 +190,7 @@ if __name__ == "__main__":
             # Setup the Robot's Parameters and Initialize Home Position
             robotControl.setRoboParams()  # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
             robotControl.setRest()        # Sets the Rest Position to Current Start Position            
-            robotControl.powerUp("", fancyStart = True) # If mode = 'fancy', begin there. Then go to Home Position
+            robotControl.powerUp("", fancyStart = False) # If mode = 'fancy', begin there. Then go to Home Position
             
             # Stream in EMG Arduino Data and Perform Gesture Recognition
             arduinoRead = streamData.arduinoRead(emgSerialNum = None, handSerialNum = handSerialNum)

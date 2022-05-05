@@ -20,8 +20,8 @@ class initiateRobotArm():
         self.actuID = [0x01, 0x02, 0x03, 0x04, 0x05]
         
         # Define Common Positions
-        self.HomePos = [-1, -10, 5, 12, 0]   # Set the Start/End Home Position
-        self.FancyPos = [-1, -14, -8, 13, 0] # Set the Start/End Home Position
+        self.HomePos = [0, 5, 8, -3, 0]   # Set the Start/End Home Position
+        self.FancyPos = [-1, 6, 8, -5, 0] # Set the Start/End Home Position
         self.RestPos = [-1.2004829049110413, 0.2907487154006958, 1.065185546875, 1.10516357421875, 0.00054931640625] # Set the Start/End Home Position
         self.posError = 0.0007
         
@@ -83,7 +83,7 @@ class initiateRobotArm():
             
     def powerUp(self, startMode, fancyStart = False):
         innfos.trapposset(self.actuID, self.accel, self.maxSpeed, self.decel)
-        print("Powering On the Robot\n")
+        print("\nPowering On the Robot\n")
         # Add a Fancy Starting Position
         if fancyStart:
             innfos.setpos(self.actuID, self.FancyPos)
@@ -271,10 +271,7 @@ class moveArm(initiateRobotArm):
     def moveDown(self):
         currentPos = self.getCurrentPos()
         if currentPos[1] > -14 + self.posError:
-            if abs(currentPos[1] - self.HomePos[1]) < self.posError:
-                currentPos[3] = currentPos[3] -8
-            else:
-                currentPos[3] +=1
+            currentPos[3] +=1
             currentPos[1] -=1
         else:
             currentPos[2] += 1
