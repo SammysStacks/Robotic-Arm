@@ -1,5 +1,5 @@
 """
-    Written by Samuel Solomon and Jiahong Li
+    Written by Samuel Solomon
     
     --------------------------------------------------------------------------
     Data Aquisition:
