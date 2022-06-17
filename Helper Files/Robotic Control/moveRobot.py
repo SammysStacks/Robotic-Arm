@@ -32,8 +32,8 @@ class initiateRobotArm():
         self.endGrabTable = [-1, -16, 12, 19, 4]
         
         # Define Movement Parameters
-        self.maxSpeed = [0.2, 0.2, 0.2, 0.4, 0.4]
-        self.Speed = [0.1, 0.1, 0.1, 0.3, 0.3]
+        self.maxSpeed = [0.5, 0.5, 0.5, 0.5, 0.5]
+        self.Speed = [0.4, 0.4, 0.4, 0.5, 0.5]
         self.accel = [1.5, 1.5, 1.5, 1.5, 1.5]
         self.decel = [-1.5, -1.5, -1.5, -1.5, -1.5]
         
@@ -277,7 +277,23 @@ class moveArm(initiateRobotArm):
             currentPos[2] += 1
             currentPos[3] += 1
         innfos.setpos(self.actuID, currentPos)
+    
+    def quarterTurn(self, clockWise = 1):
+        currentPos = self.getCurrentPos()
+        currentPos[0] += 9*clockWise
+        innfos.setpos(self.actuID, currentPos)
+    
+    def reachOutPoke(self, direction = 1):
+        currentPos = self.getCurrentPos()
+        currentPos[2] -= 5*direction
+        currentPos[3] -= 5*direction
+        innfos.setpos(self.actuID, currentPos)     
         
+    def reachOutPoke2(self, direction = 1):
+        currentPos = self.getCurrentPos()
+        currentPos[1] -= 5*direction
+        currentPos[2] -= 6*direction
+        innfos.setpos(self.actuID, currentPos)  
 
 class moveHand():
     def __init__(self, handArduino):
@@ -348,6 +364,31 @@ class robotControl(moveArm, moveHand):
         self.moveTo(self.midGrabTable1, waitFirst = True, waitLast = False, waitTime = 0.5)
         self.moveTo(self.startGrabTable, waitFirst = True, waitLast = False, waitTime = 0.5)
             
+    def circleWithTouch(self):
+        # Turn to User
+        self.quarterTurn(-1)
+        self.waitUntilStoped(0.1)
+        # Poke the User
+        self.reachOutPoke(1)
+        self.waitUntilStoped(0.1)
+        time.sleep(1)
+        self.reachOutPoke(-1)
+        self.waitUntilStoped(0.1)
+        # Go Back Home
+        self.moveTo(self.HomePos, waitFirst = True, waitLast = False, waitTime = 0.5)
+        
+    def circleWithTouch2(self):
+        # Turn to User
+        self.quarterTurn(-1)
+        self.waitUntilStoped(0.01)
+        # Poke the User
+        self.reachOutPoke2(-1)
+        self.waitUntilStoped(0.01)
+        self.reachOutPoke2(1)
+        self.waitUntilStoped(0.01)
+        # Go Back Home
+        self.moveTo(self.HomePos, waitFirst = True, waitLast = False, waitTime = 0.5)
+        
     def updateFingerText(self, fingerIndex, fingerPos):
         if self.guiApp:
             if fingerIndex < 6:
@@ -355,7 +396,7 @@ class robotControl(moveArm, moveHand):
             else:
                 for fingerInd in range(5):
                     self.guiApp.fingerText[fingerInd].setText(fingerPos)
-
+    
 # --------------------------------------------------------------------------- #
 # ------------------------- Defined Program --------------------------------- #
 

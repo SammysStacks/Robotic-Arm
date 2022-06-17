@@ -119,7 +119,7 @@ if __name__ == "__main__":
         saveDataFolder = None
     
     if useRoboticGUI:
-        controlTimeSeconds = 60*10
+        controlTimeSeconds = 60*100
     
     # Specify Training Location
     if trainModel:
@@ -190,7 +190,7 @@ if __name__ == "__main__":
             # Setup the Robot's Parameters and Initialize Home Position
             robotControl.setRoboParams()  # Starts Position Mode. Sets the Position Limits, Speed, and Acceleration  
             robotControl.setRest()        # Sets the Rest Position to Current Start Position            
-            robotControl.powerUp("", fancyStart = False) # If mode = 'fancy', begin there. Then go to Home Position
+            robotControl.powerUp("", fancyStart = True) # If mode = 'fancy', begin there. Then go to Home Position
             
             # Stream in EMG Arduino Data and Perform Gesture Recognition
             arduinoRead = streamData.arduinoRead(emgSerialNum = None, handSerialNum = handSerialNum)
