@@ -241,10 +241,9 @@ class emgArduinoRead(emgProtocol):
             self.guiApp.handArduino = self.handArduino
             self.guiApp.initiateRoboticMovement()
             
-    def controlRobotManually(self, numPointsRead, controlTimeSeconds, actionControl=None):
+    def controlRobotManually(self, numPointsRead, controlTimeSeconds, actionControl=None, numPointsPerRead=400):
         # Set Up Hand Arduino if Needed
         if self.handArduino:
-            self.handArduino.readAll() # Throw Out Initial Readings.
             # Set Up Laser Reading
             threading.Thread(target = self.distanceRead, args = (actionControl, numPointsRead), daemon=True).start()
             
@@ -270,7 +269,6 @@ class emgArduinoRead(emgProtocol):
         
         # Set Up Hand Arduino if Needed
         if self.handArduino:
-            self.handArduino.readAll() # Throw Out Initial Readings
             # Set Up Laser Reading
             threading.Thread(target = self.distanceRead, args = (actionControl, numPointsRead), daemon=True).start()
             

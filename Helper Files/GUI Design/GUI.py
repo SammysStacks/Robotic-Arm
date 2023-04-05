@@ -19,8 +19,8 @@ class Ui_MainWindow():
         self.app = QtWidgets.QApplication(sys.argv)
         
         # Basic Initial Variables
-        self.HomePosition = [-1,-10,5,12,0]     # The initial position of robot arm
-        self.InitialPosition = [90,90,90,90,90] # Initial position of robot fingers
+        self.HomePosition = [0, 5, 8, -5, -3]     # The initial position of robot arm
+        self.InitialPosition = [90,90,90,90,90]   # Initial position of robot fingers
         self.k = 1 # k=2 for 2k screen, k=1 for 1080 screen
         self.f = 4 # f=0 for 2k screen, f=4 for 1080 screen
         
@@ -49,7 +49,8 @@ class Ui_MainWindow():
         self.pushButton_r.clicked.connect(lambda: self.robotControl.releaseHand())
         self.pushButton_down.clicked.connect(lambda: self.robotControl.moveDown())
         self.pushButton_up.clicked.connect(lambda: self.robotControl.moveUp())
-        
+        self.Reset_arm.clicked.connect(lambda: self.robotControl.goHome())
+
     def setupUi(self):
         self.MainWindow.setObjectName("MainWindow")
         self.MainWindow.resize(800*self.k, 750*self.k)
@@ -243,7 +244,7 @@ class Ui_MainWindow():
         font.setBold(True)
         font.setWeight(75)
         self.laser_on.setFont(font)
-        self.laser_on.setObjectName("laser_on")
+        self.laser_on.setObjectName("Poke")
         
         # button for turning laser off
         self.laser_off = QtWidgets.QPushButton(self.centralwidget)
@@ -254,7 +255,7 @@ class Ui_MainWindow():
         font.setBold(True)
         font.setWeight(75)
         self.laser_off.setFont(font)
-        self.laser_off.setObjectName("laser_off")
+        self.laser_off.setObjectName("poke2")
            
         # set for main window 
         self.MainWindow.setCentralWidget(self.centralwidget)
@@ -274,10 +275,9 @@ class Ui_MainWindow():
         
         # Link the Operational Buttons
         self.pushButton_arm.clicked.connect(self.click_Move_Arm)
-        self.laser_on.clicked.connect(self.click_Laser_On)
-        self.laser_off.clicked.connect(self.click_Laser_Off)
+        self.laser_on.clicked.connect(lambda: self.robotControl.circleWithTouch())
+        self.laser_off.clicked.connect(lambda: self.robotControl.circleWithTouch2())
         self.pushButton_reset.clicked.connect(self.resetButton)
-        
     
     def resetButton(self):
         print("Resetting")
@@ -327,8 +327,8 @@ class Ui_MainWindow():
         self.Reset_arm.setText(self.translate("MainWindow", "Reset Arm"))
         self.label_distance.setText(self.translate("MainWindow", "Distance:"))
         self.Number_distance.setText(self.translate("MainWindow", "no data"))
-        self.laser_on.setText(self.translate("MainWindow", "Laser On"))
-        self.laser_off.setText(self.translate("MainWindow", "Laser Off"))
+        self.laser_on.setText(self.translate("MainWindow", "Poke"))
+        self.laser_off.setText(self.translate("MainWindow", "Poke2"))
     
 
 

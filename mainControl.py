@@ -1,5 +1,5 @@
 """
-    Written by Samuel Solomon and Jiahong Li
+    Written by Samuel Solomon
     
     --------------------------------------------------------------------------
     Data Aquisition:
@@ -17,6 +17,16 @@
     The Reference Electrode Should be Placed in the Middle, And the Electrodes
     Should Line Up On the Axis From the hand to the Elbow (If Using Lower Arm).
     Provide Decent Spacing Between the Electrodes (Noticeable Gap)
+    
+    Robotic Control Note: 
+        
+    The input values for the robotic arm MAY be different for you.
+    If you run this code and the arm moves to  bad position, please edit
+    './Helper Files/Robotic Control/moveRobot.py' file. In particular, you
+    should edit the first class's (initiateRobotArm) init method. Specifically,
+    the homePos and FancyPos attributes. They are an array of 5 numbers corresponding
+    to the actuators on the Innfos robot. Innfos has already changed their name to
+    Minta and may make further edits to the robot in the future.
     
     HardWare Processing:
     The Code Below Used the Following Electronic Material from Olimex:  
@@ -109,7 +119,7 @@ if __name__ == "__main__":
         saveDataFolder = None
     
     if useRoboticGUI:
-        controlTimeSeconds = 60*10
+        controlTimeSeconds = 60*100
     
     # Specify Training Location
     if trainModel:
